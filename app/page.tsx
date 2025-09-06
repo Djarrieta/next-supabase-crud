@@ -1,0 +1,72 @@
+import { getSupabaseClient } from "@/lib/supabaseClient";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+type Item = { id: number; description: string };
+
+async function fetchItems(): Promise<Item[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("items")
+    .select("id, description")
+    .order("id");
+  if (error) throw error;
+  return data as Item[];
+}
+
+export const revalidate = 0; // always fresh
+
+export default async function Page() {
+  let items: Item[] = [];
+  try {
+    items = await fetchItems();
+  } catch (e: any) {
+    return (
+      <p className="text-sm text-red-600">Failed to load items: {e.message}</p>
+    );
+  }
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">Items</h1>
+        <p className="text-sm text-muted-foreground">
+          Listing all records from the Supabase table "items".
+        </p>
+      </div>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-24">ID</TableHead>
+              <TableHead>Description</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={2}
+                  className="text-center text-muted-foreground"
+                >
+                  No items found
+                </TableCell>
+              </TableRow>
+            )}
+            {items.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell className="font-mono text-xs">{item.id}</TableCell>
+                <TableCell>{item.description}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
