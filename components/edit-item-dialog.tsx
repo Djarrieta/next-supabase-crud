@@ -93,7 +93,6 @@ export default function EditItemDialog({
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
-              <option value="archived">Archived</option>
             </select>
           </div>
           <div className="flex justify-end gap-2 pt-2">
@@ -108,7 +107,7 @@ export default function EditItemDialog({
                 }}
                 className="inline-flex h-9 items-center rounded-md border border-destructive/50 bg-destructive/10 px-3 text-sm font-medium text-destructive shadow-sm hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Delete
+                Archive
               </button>
             )}
             <DialogClose asChild>
