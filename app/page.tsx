@@ -1,6 +1,6 @@
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { getDb, items, type Item as DrizzleItem } from "@/lib/db/client";
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import {
   Table,
   TableBody,
@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/table";
 import AddItemDialog from "@/components/add-item-dialog";
 import EditItemDialog from "@/components/edit-item-dialog";
-import { createItem, updateItem } from "./actions";
+import { createItem, updateItem, deleteItem } from "./actions";
 
-type Item = { id: number; description: string };
+type Item = { id: number; description: string; status?: string };
 
 async function fetchItems(): Promise<Item[]> {
   // Prefer Drizzle (direct Postgres) if DATABASE_URL is configured; fallback to Supabase REST.
@@ -22,10 +22,12 @@ async function fetchItems(): Promise<Item[]> {
       const rows: DrizzleItem[] = await getDb()
         .select()
         .from(items)
+        .where(eq(items.status, "active"))
         .orderBy(asc(items.id));
       return rows.map((r) => ({
         id: r.id as number,
         description: r.description ?? "",
+        status: (r as any).status ?? "active",
       }));
     } catch (e) {
       console.warn("Drizzle query failed, falling back to Supabase client:", e);
@@ -34,7 +36,7 @@ async function fetchItems(): Promise<Item[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("items")
-    .select("id, description")
+  .select("id, description, status")
     .order("id");
   if (error) throw error;
   return data as Item[];
@@ -89,6 +91,7 @@ export default async function Page() {
                     id={item.id}
                     initialDescription={item.description}
                     action={updateItem}
+                    deleteAction={deleteItem}
                   />
                 </TableCell>
               </TableRow>
