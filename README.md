@@ -8,6 +8,7 @@ Minimal Next.js (App Router) + Supabase + shadcn/ui example using Bun.
 - Bun (no npm)
 - Supabase JS v2
 - TailwindCSS + shadcn/ui (only Table component included manually)
+- Drizzle ORM (Postgres / Supabase)
 
 ## Setup
 
@@ -47,3 +48,34 @@ bun run dev
 - Data is fetched server-side on each request (`revalidate = 0`).
 - Only a simple read (list) is implemented.
 - Add more shadcn components by installing the CLI (optional): `bunx shadcn-ui add button`.
+
+## Drizzle ORM
+
+This project includes Drizzle for managing schema & migrations locally against your Supabase Postgres database.
+
+1. Set a `DATABASE_URL` (or `DRIZZLE_DATABASE_URL`) in `.env.local`. You can copy the pooled connection string from Supabase (Settings > Database > Connection string > URI). It looks like:
+
+```
+DATABASE_URL=postgres://postgres:YOUR_PASSWORD@aws-xyz.supabase.co:5432/postgres
+```
+
+2. Define tables in `lib/db/schema.ts`.
+3. Generate SQL migrations:
+
+```bash
+bun run drizzle:generate
+```
+
+4. Push (apply) them to the database (uses the connection string):
+
+```bash
+bun run drizzle:push
+```
+
+5. (Optional) Open the Drizzle Studio UI:
+
+```bash
+bun run drizzle:studio
+```
+
+`drizzle/` output is gitignored by default; remove the entry from `.gitignore` if you wish to commit migration snapshots.

@@ -1,4 +1,6 @@
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { getDb, items, type Item as DrizzleItem } from "@/lib/db/client";
+import { asc } from "drizzle-orm";
 import {
   Table,
   TableBody,
@@ -11,6 +13,21 @@ import {
 type Item = { id: number; description: string };
 
 async function fetchItems(): Promise<Item[]> {
+  // Prefer Drizzle (direct Postgres) if DATABASE_URL is configured; fallback to Supabase REST.
+  if (process.env.DATABASE_URL || process.env.DRIZZLE_DATABASE_URL) {
+    try {
+      const rows: DrizzleItem[] = await getDb()
+        .select()
+        .from(items)
+        .orderBy(asc(items.id));
+      return rows.map((r) => ({
+        id: r.id as number,
+        description: r.description ?? "",
+      }));
+    } catch (e) {
+      console.warn("Drizzle query failed, falling back to Supabase client:", e);
+    }
+  }
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("items")

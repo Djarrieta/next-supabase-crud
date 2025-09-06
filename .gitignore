@@ -68,3 +68,6 @@ supabase/functions/**/node_modules/
 *.db
 *.sqlite
 *.sqlite-journal
+
+# Drizzle ORM generated artifacts
+drizzle/
