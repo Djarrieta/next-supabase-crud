@@ -1,6 +1,7 @@
 "use server";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { getDb, items } from "@/lib/db/client";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function createItem(formData: FormData) {
@@ -18,6 +19,36 @@ export async function createItem(formData: FormData) {
     }
   } catch (e) {
     console.error("createItem failed:", e);
+    throw e;
+  }
+  revalidatePath("/");
+}
+
+export async function updateItem(formData: FormData) {
+  const idRaw = formData.get("id");
+  const description = String(formData.get("description") || "").trim();
+  if (!idRaw) {
+    throw new Error("Missing item id");
+  }
+  const id = Number(idRaw);
+  if (Number.isNaN(id)) {
+    throw new Error("Invalid item id");
+  }
+  const finalDescription = description || "Untitled item";
+  try {
+    if (process.env.DATABASE_URL || process.env.DRIZZLE_DATABASE_URL) {
+      await getDb().update(items).set({ description: finalDescription }).where(eq(items.id, id));
+    } else {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase
+        .from("items")
+        .update({ description: finalDescription })
+        .eq("id", id)
+        .single();
+      if (error) throw error;
+    }
+  } catch (e) {
+    console.error("updateItem failed:", e);
     throw e;
   }
   revalidatePath("/");

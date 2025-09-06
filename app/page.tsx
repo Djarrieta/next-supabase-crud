@@ -10,7 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import AddItemDialog from "@/components/add-item-dialog";
-import { createItem } from "./actions";
+import EditItemDialog from "@/components/edit-item-dialog";
+import { createItem, updateItem } from "./actions";
 
 type Item = { id: number; description: string };
 
@@ -65,13 +66,14 @@ export default async function Page() {
             <TableRow>
               <TableHead className="w-24">ID</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead className="w-28 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={2}
+                  colSpan={3}
                   className="text-center text-muted-foreground"
                 >
                   No items found
@@ -82,6 +84,13 @@ export default async function Page() {
               <TableRow key={item.id}>
                 <TableCell className="font-mono text-xs">{item.id}</TableCell>
                 <TableCell>{item.description}</TableCell>
+                <TableCell className="text-right">
+                  <EditItemDialog
+                    id={item.id}
+                    initialDescription={item.description}
+                    action={updateItem}
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
