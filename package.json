@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-  "dev": "next dev -p 4000",
+    "dev": "next dev -p 4000",
     "build": "next build",
-  "start": "next start -p 4000",
+    "start": "next start -p 4000",
     "lint": "next lint",
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:push": "drizzle-kit push",
     "drizzle:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
     "@supabase/supabase-js": "^2.45.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.44.5",
