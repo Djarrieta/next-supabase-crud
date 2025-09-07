@@ -96,6 +96,15 @@ export default async function ItemsPage({
     },
   ];
 
+  const makePageHref = (p: number) => {
+    const params = new URLSearchParams();
+    if (statusFilter !== "active") params.set("status", statusFilter);
+    if (p !== 1) params.set("page", String(p));
+    if (pageSize !== MAX_PAGE_SIZE) params.set("pageSize", String(pageSize));
+    const search = params.toString();
+    return `/items${search ? `?${search}` : ""}`;
+  };
+
   return (
     <TableTemplate
       title="Items"
@@ -104,15 +113,7 @@ export default async function ItemsPage({
       totalRows={total}
       page={page}
       pageSize={pageSize}
-      makePageHref={(p) => {
-        const params = new URLSearchParams();
-        if (statusFilter !== "active") params.set("status", statusFilter);
-        if (p !== 1) params.set("page", String(p));
-        if (pageSize !== MAX_PAGE_SIZE)
-          params.set("pageSize", String(pageSize));
-        const search = params.toString();
-        return `/items${search ? `?${search}` : ""}`;
-      }}
+      makePageHref={makePageHref}
       columns={columns}
       emptyMessage="No items found"
       controlsStart={<AddItemDialog action={createItem} />}
