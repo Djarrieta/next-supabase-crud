@@ -5,7 +5,7 @@ import StatusFilter from "@/components/status-filter";
 import { Item } from "./domain/schema";
 import ResourceTablePage, {
   ResourceTableColumn,
-} from "@/components/resource-table-page";
+} from "@/components/table-template";
 
 export const revalidate = 0; // always fresh
 
