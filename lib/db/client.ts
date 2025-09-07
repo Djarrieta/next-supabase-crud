@@ -2,7 +2,6 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
 
-// Lazy connection: only create when env vars present & accessed
 let _db: ReturnType<typeof drizzle> | undefined;
 
 export function getDb() {

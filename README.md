@@ -59,7 +59,7 @@ This project includes Drizzle for managing schema & migrations locally against y
 DATABASE_URL=postgres://postgres:YOUR_PASSWORD@aws-xyz.supabase.co:5432/postgres
 ```
 
-2. Define tables in `lib/db/schema.ts`.
+2. Define feature tables in `app/<feature>/schema.ts` (e.g. `app/items/schema.ts`). Then export them from the central aggregator `lib/db/schema.ts` so Drizzle sees a single schema entry point.
 3. Generate SQL migrations:
 
 ```bash

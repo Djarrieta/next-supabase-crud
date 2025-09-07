@@ -1,10 +1,14 @@
+// Server actions for Items.
+// Only import the domain service (app/items/domain/service) and framework utilities (next/*).
+// Do NOT import UI components or client-only modules here.
+
 "use server";
 import { revalidatePath } from "next/cache";
-import { getItemsService } from "@/lib/items/service";
+import { getItemsService } from "@/app/items/domain/service";
 
 export async function createItem(formData: FormData) {
   try {
-  await getItemsService().createFromForm(formData);
+    await getItemsService().createFromForm(formData);
   } catch (e) {
     console.error("createItem failed:", e);
     throw e;
@@ -14,7 +18,7 @@ export async function createItem(formData: FormData) {
 
 export async function updateItem(formData: FormData) {
   try {
-  await getItemsService().updateFromForm(formData);
+    await getItemsService().updateFromForm(formData);
   } catch (e) {
     console.error("updateItem failed:", e);
     throw e;
@@ -24,7 +28,7 @@ export async function updateItem(formData: FormData) {
 
 export async function deleteItem(formData: FormData) {
   try {
-  await getItemsService().softDeleteFromForm(formData);
+    await getItemsService().softDeleteFromForm(formData);
   } catch (e) {
     console.error("deleteItem failed:", e);
     throw e;

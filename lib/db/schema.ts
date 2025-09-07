@@ -1,11 +1,10 @@
-import { pgTable, bigint, text } from 'drizzle-orm/pg-core';
+// Central Drizzle schema aggregator.
+// Feature schemas live in app/<feature>/domain/schema.ts and are re-exported here.
+// Only import pure schema modules (no React/Next/UI imports, no side-effects).
 
-export const items = pgTable('items', {
-  id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-  description: text('description'),
-  // Soft delete / lifecycle status: active | inactive | archived
-  status: text('status').notNull().default('active'),
-});
+export { items } from '@/app/items/domain/schema';
+export type { Item, NewItem } from '@/app/items/domain/schema';
 
-export type Item = typeof items.$inferSelect;
-export type NewItem = typeof items.$inferInsert;
+// Future additions:
+// export { users } from '@/app/users/domain/schema';
+// export type { User } from '@/app/users/domain/schema';
