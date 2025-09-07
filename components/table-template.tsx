@@ -10,10 +10,10 @@ import {
 import clsx from "clsx";
 
 /**
- * Generic column definition for ResourceTablePage
+ * Generic column definition for TableTemplatePage
  * cell: renderer for the column (row) => ReactNode
  */
-export interface ResourceTableColumn<T> {
+export interface TableTemplateColumn<T> {
   id: string; // unique id / key for the column
   header: React.ReactNode;
   className?: string;
@@ -24,13 +24,13 @@ export interface ResourceTableColumn<T> {
   widthClass?: string;
 }
 
-export interface ResourceTablePageProps<T> {
+export interface TableTemplateProps<T> {
   title: string;
   description?: string;
   /** Data rows */
   rows: T[];
   /** Column descriptors */
-  columns: ResourceTableColumn<T>[];
+  columns: TableTemplateColumn<T>[];
   /** Message to show when no rows */
   emptyMessage?: string;
   /** Optional element(s) rendered to the right of the header (Add button, filters, etc.) */
@@ -46,8 +46,8 @@ export interface ResourceTablePageProps<T> {
  * Reusable resource table page layout.
  * Provides a consistent heading, control bar, and table structure across entities.
  */
-export function ResourceTablePage<T extends { id: string | number }>(
-  props: ResourceTablePageProps<T>
+export function TableTemplate<T extends { id: string | number }>(
+  props: TableTemplateProps<T>
 ) {
   const {
     title,
@@ -122,4 +122,4 @@ export function ResourceTablePage<T extends { id: string | number }>(
   );
 }
 
-export default ResourceTablePage;
+export default TableTemplate;

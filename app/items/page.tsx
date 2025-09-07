@@ -3,8 +3,8 @@ import EditItemDialog from "@/components/edit-item-dialog";
 import { createItem, updateItem, deleteItem, listItems } from "./actions";
 import StatusFilter from "@/components/status-filter";
 import { Item } from "./domain/schema";
-import ResourceTablePage, {
-  ResourceTableColumn,
+import TableTemplate, {
+  TableTemplateColumn,
 } from "@/components/table-template";
 
 export const revalidate = 0; // always fresh
@@ -29,7 +29,7 @@ export default async function ItemsPage({
     );
   }
   // Columns definition using generic table component
-  const columns: ResourceTableColumn<Item>[] = [
+  const columns: TableTemplateColumn<Item>[] = [
     {
       id: "id",
       header: <span className="w-24 inline-block">ID</span>,
@@ -75,7 +75,7 @@ export default async function ItemsPage({
   ];
 
   return (
-    <ResourceTablePage
+    <TableTemplate
       title="Items"
       description='Listing all records from the Supabase table "items".'
       rows={itemsData}
