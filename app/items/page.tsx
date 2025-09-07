@@ -15,14 +15,35 @@ export default async function ItemsPage({
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
   let itemsData: Item[] = [];
+  let total = 0;
+  let page = 1;
+  let pageSize = 3;
   // Derive status filter from search params. Default to 'active'. Acceptable values: active | inactive | all
   const raw = searchParams?.status;
   const statusParam = Array.isArray(raw) ? raw[0] : raw;
   const statusFilter = ["active", "inactive", "all"].includes(statusParam || "")
     ? (statusParam as string)
     : "active";
+  // pagination params
+  const rawPage = searchParams?.page;
+  const rawPageSize = searchParams?.pageSize;
+  const parsedPage = Number(Array.isArray(rawPage) ? rawPage[0] : rawPage);
+  const parsedPageSize = Number(
+    Array.isArray(rawPageSize) ? rawPageSize[0] : rawPageSize
+  );
+  page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  pageSize =
+    Number.isFinite(parsedPageSize) &&
+    parsedPageSize > 0 &&
+    parsedPageSize <= 100
+      ? parsedPageSize
+      : 10;
   try {
-    itemsData = await listItems(statusFilter);
+    const result = await listItems(statusFilter, page, pageSize);
+    itemsData = result.rows as Item[];
+    total = result.total;
+    page = result.page;
+    pageSize = result.pageSize;
   } catch (e: any) {
     return (
       <p className="text-sm text-red-600">Failed to load items: {e.message}</p>
@@ -79,6 +100,17 @@ export default async function ItemsPage({
       title="Items"
       description='Listing all records from the Supabase table "items".'
       rows={itemsData}
+      totalRows={total}
+      page={page}
+      pageSize={pageSize}
+      makePageHref={(p) => {
+        const params = new URLSearchParams();
+        if (statusFilter !== "active") params.set("status", statusFilter);
+        if (p !== 1) params.set("page", String(p));
+        if (pageSize !== 10) params.set("pageSize", String(pageSize));
+        const search = params.toString();
+        return `/items${search ? `?${search}` : ""}`;
+      }}
       columns={columns}
       emptyMessage="No items found"
       controlsStart={<AddItemDialog action={createItem} />}

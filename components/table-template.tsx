@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -29,6 +30,12 @@ export interface TableTemplateProps<T> {
   description?: string;
   /** Data rows */
   rows: T[];
+  /** Total rows (for pagination). If provided together with page & pageSize footer pagination will display */
+  totalRows?: number;
+  page?: number;
+  pageSize?: number;
+  /** Function that builds a href for a given target page (server-side). */
+  makePageHref?: (page: number) => string;
   /** Column descriptors */
   columns: TableTemplateColumn<T>[];
   /** Message to show when no rows */
@@ -53,6 +60,10 @@ export function TableTemplate<T extends { id: string | number }>(
     title,
     description,
     rows,
+    totalRows,
+    page = 1,
+    pageSize = rows.length || 10,
+    makePageHref,
     columns,
     emptyMessage = "No records found",
     controlsStart,
@@ -60,6 +71,51 @@ export function TableTemplate<T extends { id: string | number }>(
     footer,
     className,
   } = props;
+
+  const totalPages =
+    totalRows !== undefined ? Math.max(1, Math.ceil(totalRows / pageSize)) : 1;
+
+  function renderPagination() {
+    if (totalRows === undefined || !makePageHref) return null;
+    const hasPrev = page > 1;
+    const hasNext = page < totalPages;
+    const baseCls = "px-3 py-1 rounded border text-sm";
+    return (
+      <div className="flex items-center gap-3 justify-end w-full py-2">
+        {hasPrev ? (
+          <Link
+            prefetch={false}
+            href={makePageHref(page - 1)}
+            className={baseCls}
+            aria-label="Previous page"
+          >
+            Prev
+          </Link>
+        ) : (
+          <span className={clsx(baseCls, "opacity-40 cursor-not-allowed")}>
+            Prev
+          </span>
+        )}
+        <span className="text-sm text-muted-foreground">
+          Page {page} of {totalPages}
+        </span>
+        {hasNext ? (
+          <Link
+            prefetch={false}
+            href={makePageHref(page + 1)}
+            className={baseCls}
+            aria-label="Next page"
+          >
+            Next
+          </Link>
+        ) : (
+          <span className={clsx(baseCls, "opacity-40 cursor-not-allowed")}>
+            Next
+          </span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={clsx("space-y-6", className)}>
@@ -117,7 +173,12 @@ export function TableTemplate<T extends { id: string | number }>(
           </TableBody>
         </Table>
       </div>
-      {footer && <div>{footer}</div>}
+      {(footer || totalRows !== undefined) && (
+        <div className="flex flex-col gap-2">
+          {footer}
+          {renderPagination()}
+        </div>
+      )}
     </div>
   );
 }

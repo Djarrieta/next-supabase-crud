@@ -36,9 +36,9 @@ export async function deleteItem(formData: FormData) {
   revalidatePath("/items");
 }
 
-export async function listItems(statusFilter: string) {
+export async function listItems(statusFilter: string, page: number, pageSize: number) {
   try {
-    return await getItemsService().list(statusFilter);
+    return await getItemsService().list(statusFilter, page, pageSize);
   } catch (e) {
     console.error("listItems failed:", e);
     throw e;

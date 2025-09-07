@@ -5,13 +5,14 @@
 
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getDb, Item, items } from '@/lib/db/client';
-import {  eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 export interface ItemUpdate { description?: string; status?: string }
+export interface PaginatedResult<T> { rows: T[]; total: number; page: number; pageSize: number }
 export interface ItemRepository {
   create(description: string): Promise<void>;
   update(id: number, update: ItemUpdate): Promise<void>;
-  list(statusFilter: string): Promise<Array<Item>>;
+  list(statusFilter: string, page: number, pageSize: number): Promise<PaginatedResult<Item>>;
 }
 
 class DrizzleItemRepository implements ItemRepository {
@@ -26,14 +27,19 @@ class DrizzleItemRepository implements ItemRepository {
     if (Object.keys(updateData).length === 0) return;
     await getDb().update(items).set(updateData).where(eq(items.id, id));
   }
-  async list(statusFilter: string) {
+  async list(statusFilter: string, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
     const db = getDb();
-    const base = db.select().from(items);
-    // Acceptable status filters: active | inactive | all (archived only via explicit query)
-    const rows = statusFilter === 'all'
-      ? await base
-      : await base.where(eq(items.status, statusFilter));
-    return rows.map(r => ({ id: r.id as number, description: r.description ?? null, status: (r as any).status || 'active' }));
+    const offset = (page - 1) * pageSize;
+    // total count
+    const countQuery = statusFilter === 'all'
+      ? db.select({ value: sql<number>`count(*)` }).from(items)
+      : db.select({ value: sql<number>`count(*)` }).from(items).where(eq(items.status, statusFilter));
+    const [{ value: total }] = await countQuery;
+    const pageRows = await (statusFilter === 'all'
+      ? db.select().from(items).orderBy(items.id).limit(pageSize).offset(offset)
+      : db.select().from(items).where(eq(items.status, statusFilter)).orderBy(items.id).limit(pageSize).offset(offset));
+    const mapped = pageRows.map(r => ({ id: r.id as number, description: r.description ?? null, status: (r as any).status || 'active' }));
+    return { rows: mapped, total: Number(total) || 0, page, pageSize };
   }
 }
 
@@ -57,13 +63,20 @@ class SupabaseItemRepository implements ItemRepository {
       .single();
     if (error) throw error;
   }
-  async list(statusFilter: string) {
+  async list(statusFilter: string, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
     const supabase = getSupabaseClient();
-    let query = supabase.from('items').select('id, description, status').order('id');
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    let query = supabase
+      .from('items')
+      .select('id, description, status', { count: 'exact' })
+      .order('id')
+      .range(from, to);
     if (statusFilter !== 'all') query = query.eq('status', statusFilter);
-    const { data, error } = await query;
+    const { data, error, count } = await query;
     if (error) throw error;
-    return (data || []).map(r => ({ id: (r as any).id as number, description: (r as any).description ?? null, status: (r as any).status || 'active' }));
+    const mapped = (data || []).map(r => ({ id: (r as any).id as number, description: (r as any).description ?? null, status: (r as any).status || 'active' }));
+    return { rows: mapped, total: count || 0, page, pageSize };
   }
 }
 
@@ -85,10 +98,12 @@ export class ItemsService {
     const id = this.extractId(formData);
     await this.repo.update(id, { status: 'archived' });
   }
-  async list(statusFilter: string) {
+  async list(statusFilter: string, page: number, pageSize: number) {
     const allowed = ['active', 'inactive', 'all'];
     const filter = allowed.includes(statusFilter) ? statusFilter : 'active';
-    return this.repo.list(filter);
+    const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+    const safePageSize = Number.isFinite(pageSize) && pageSize > 0 && pageSize <= 100 ? Math.floor(pageSize) : 10;
+    return this.repo.list(filter, safePage, safePageSize);
   }
   private extractId(formData: FormData): number {
     const raw = formData.get('id');
