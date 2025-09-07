@@ -1,2 +1,2 @@
 // Items feature specific constants
-export const MAX_PAGE_SIZE = 3;
+export const MAX_PAGE_SIZE = 5;

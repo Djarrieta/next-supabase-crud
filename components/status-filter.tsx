@@ -16,6 +16,8 @@ export default function StatusFilter({ current }: { current: string }) {
   function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const val = e.target.value;
     const sp = new URLSearchParams(params.toString());
+    // Reset pagination when filter changes
+    if (sp.has("page")) sp.delete("page");
     if (val === "active") {
       // default -> omit param for cleaner URL
       sp.delete("status");
