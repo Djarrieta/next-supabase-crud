@@ -6,6 +6,7 @@ import { Item } from "./domain/schema";
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
+import { MAX_PAGE_SIZE } from "./constants";
 
 export const revalidate = 0; // always fresh
 
@@ -17,7 +18,7 @@ export default async function ItemsPage({
   let itemsData: Item[] = [];
   let total = 0;
   let page = 1;
-  let pageSize = 3;
+  let pageSize = MAX_PAGE_SIZE;
   // Derive status filter from search params. Default to 'active'. Acceptable values: active | inactive | all
   const raw = searchParams?.status;
   const statusParam = Array.isArray(raw) ? raw[0] : raw;
@@ -35,9 +36,9 @@ export default async function ItemsPage({
   pageSize =
     Number.isFinite(parsedPageSize) &&
     parsedPageSize > 0 &&
-    parsedPageSize <= 100
+    parsedPageSize <= MAX_PAGE_SIZE
       ? parsedPageSize
-      : 10;
+      : MAX_PAGE_SIZE;
   try {
     const result = await listItems(statusFilter, page, pageSize);
     itemsData = result.rows as Item[];
@@ -107,7 +108,8 @@ export default async function ItemsPage({
         const params = new URLSearchParams();
         if (statusFilter !== "active") params.set("status", statusFilter);
         if (p !== 1) params.set("page", String(p));
-        if (pageSize !== 10) params.set("pageSize", String(pageSize));
+        if (pageSize !== MAX_PAGE_SIZE)
+          params.set("pageSize", String(pageSize));
         const search = params.toString();
         return `/items${search ? `?${search}` : ""}`;
       }}
