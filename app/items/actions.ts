@@ -35,3 +35,12 @@ export async function deleteItem(formData: FormData) {
   }
   revalidatePath("/items");
 }
+
+export async function listItems(statusFilter: string) {
+  try {
+    return await getItemsService().list(statusFilter);
+  } catch (e) {
+    console.error("listItems failed:", e);
+    throw e;
+  }
+}

@@ -1,6 +1,3 @@
-import { getSupabaseClient } from "@/lib/supabaseClient";
-import { getDb, items, type Item as DrizzleItem } from "@/lib/db/client";
-import { asc, eq } from "drizzle-orm";
 import {
   Table,
   TableBody,
@@ -11,47 +8,9 @@ import {
 } from "@/components/ui/table";
 import AddItemDialog from "@/components/add-item-dialog";
 import EditItemDialog from "@/components/edit-item-dialog";
-import { createItem, updateItem, deleteItem } from "./actions";
+import { createItem, updateItem, deleteItem, listItems } from "./actions";
 import StatusFilter from "@/components/status-filter";
-
-type Item = { id: number; description: string; status?: string };
-
-async function fetchItems(statusFilter: string): Promise<Item[]> {
-  // Prefer Drizzle (direct Postgres) if DATABASE_URL is configured; fallback to Supabase REST.
-  if (process.env.DATABASE_URL || process.env.DRIZZLE_DATABASE_URL) {
-    try {
-      const db = getDb();
-      let rows: DrizzleItem[];
-      if (statusFilter === "all") {
-        rows = await db.select().from(items).orderBy(asc(items.id));
-      } else {
-        rows = await db
-          .select()
-          .from(items)
-          .where(eq(items.status, statusFilter as any))
-          .orderBy(asc(items.id));
-      }
-      return rows.map((r) => ({
-        id: r.id as number,
-        description: r.description ?? "",
-        status: (r as any).status ?? "active",
-      }));
-    } catch (e) {
-      console.warn("Drizzle query failed, falling back to Supabase client:", e);
-    }
-  }
-  const supabase = getSupabaseClient();
-  let query = supabase
-    .from("items")
-    .select("id, description, status")
-    .order("id");
-  if (statusFilter !== "all") {
-    query = query.eq("status", statusFilter);
-  }
-  const { data, error } = await query;
-  if (error) throw error;
-  return data as Item[];
-}
+import { Item } from "./domain/schema";
 
 export const revalidate = 0; // always fresh
 
@@ -68,7 +27,7 @@ export default async function ItemsPage({
     ? (statusParam as string)
     : "active";
   try {
-    itemsData = await fetchItems(statusFilter);
+    itemsData = await listItems(statusFilter);
   } catch (e: any) {
     return (
       <p className="text-sm text-red-600">Failed to load items: {e.message}</p>
@@ -110,7 +69,7 @@ export default async function ItemsPage({
             {itemsData.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-mono text-xs">{item.id}</TableCell>
-                <TableCell>{item.description}</TableCell>
+                <TableCell>{item.description ?? ""}</TableCell>
                 <TableCell>
                   <span
                     className={
@@ -125,7 +84,7 @@ export default async function ItemsPage({
                 <TableCell className="text-right">
                   <EditItemDialog
                     id={item.id}
-                    initialDescription={item.description}
+                    initialDescription={item.description ?? ""}
                     initialStatus={item.status}
                     action={updateItem}
                     deleteAction={deleteItem}
