@@ -68,12 +68,18 @@ export default async function ItemsPage({
       cell: (row) => (
         <div className="flex flex-col">
           <span>{row.description ?? ""}</span>
-          <div>
+          <div className="flex flex-wrap gap-1 pt-1">
             {row.status === "active" ? (
               <Tag variant="active">Active</Tag>
             ) : (
               <Tag variant="inactive">Inactive</Tag>
             )}
+            {Array.isArray((row as any).tags) &&
+              (Array.from(new Set((row as any).tags)) as string[]).map((t) => (
+                <Tag key={t} variant="default">
+                  {t}
+                </Tag>
+              ))}
           </div>
         </div>
       ),

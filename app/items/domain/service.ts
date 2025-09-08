@@ -4,30 +4,31 @@
 // Allowed: lib/db, lib/supabaseClient, other domain modules, value objects, utilities.
 
 import { getSupabaseClient } from '@/lib/supabaseClient';
-import { getDb, Item, items, ItemStatus, ITEM_STATUS_VALUES } from '@/lib/db/client';
+import { getDb, Item, items, ItemStatus, ITEM_STATUS_VALUES, ITEM_TAG_VALUES, ItemTag } from '@/lib/db/client';
 import { eq, sql } from 'drizzle-orm';
 import { ItemStatusFilter } from '@/app/items/domain/schema';
 
-export interface ItemUpdate { description?: string; status?: ItemStatus; sellPrice?: number; unique?: boolean }
+export interface ItemUpdate { description?: string; status?: ItemStatus; sellPrice?: number; unique?: boolean; tags?: ItemTag[] }
 
 export interface PaginatedResult<T> { rows: T[]; total: number; page: number; pageSize: number }
 export interface ItemRepository {
-  create(description: string, sellPrice: number, unique: boolean): Promise<void>;
+  create(description: string, sellPrice: number, unique: boolean, tags: ItemTag[]): Promise<void>;
   update(id: number, update: ItemUpdate): Promise<void>;
   list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>>;
 }
 
 class DrizzleItemRepository implements ItemRepository {
-  async create(description: string, sellPrice: number, unique: boolean) {
-    await getDb().insert(items).values({ description, sellPrice: sellPrice.toFixed(2), unique });
+  async create(description: string, sellPrice: number, unique: boolean, tags: ItemTag[]) {
+    await getDb().insert(items).values({ description, sellPrice: sellPrice.toFixed(2), unique, tags });
   }
   async update(id: number, update: ItemUpdate) {
     if (!id || Number.isNaN(id)) throw new Error('Invalid item id');
     const updateData: Record<string, unknown> = {};
     if (update.description !== undefined) updateData.description = update.description;
     if (update.status !== undefined) updateData.status = update.status;
-  if (update.sellPrice !== undefined) updateData.sellPrice = update.sellPrice.toFixed(2);
-  if (update.unique !== undefined) updateData.unique = update.unique;
+    if (update.sellPrice !== undefined) updateData.sellPrice = update.sellPrice.toFixed(2);
+    if (update.unique !== undefined) updateData.unique = update.unique;
+    if (update.tags !== undefined) updateData.tags = update.tags;
   if (Object.keys(updateData).length === 0) return;
     await getDb().update(items).set(updateData).where(eq(items.id, id));
   }
@@ -47,16 +48,17 @@ class DrizzleItemRepository implements ItemRepository {
       description: r.description ?? null,
       status: ((r as any).status || 'active') as ItemStatus,
       sellPrice: (r as any).sellPrice ? String((r as any).sellPrice) : '0',
-      unique: Boolean((r as any).unique)
+      unique: Boolean((r as any).unique),
+      tags: Array.isArray((r as any).tags) ? (r as any).tags : []
     })) as unknown as Item[];
     return { rows: mapped, total: Number(total) || 0, page, pageSize };
   }
 }
 
 class SupabaseItemRepository implements ItemRepository {
-  async create(description: string, sellPrice: number, unique: boolean) {
+  async create(description: string, sellPrice: number, unique: boolean, tags: ItemTag[]) {
     const supabase = getSupabaseClient();
-    const { error } = await supabase.from('items').insert({ description, sell_price: sellPrice, unique });
+    const { error } = await supabase.from('items').insert({ description, sell_price: sellPrice, unique, tags });
     if (error) throw error;
   }
   async update(id: number, update: ItemUpdate) {
@@ -64,8 +66,9 @@ class SupabaseItemRepository implements ItemRepository {
     const updateData: Record<string, unknown> = {};
     if (update.description !== undefined) updateData.description = update.description;
     if (update.status !== undefined) updateData.status = update.status;
-  if (update.sellPrice !== undefined) updateData.sell_price = update.sellPrice;
-  if (update.unique !== undefined) updateData.unique = update.unique;
+    if (update.sellPrice !== undefined) updateData.sell_price = update.sellPrice;
+    if (update.unique !== undefined) updateData.unique = update.unique;
+    if (update.tags !== undefined) updateData.tags = update.tags;
   if (Object.keys(updateData).length === 0) return;
     const supabase = getSupabaseClient();
     const { error } = await supabase
@@ -81,7 +84,7 @@ class SupabaseItemRepository implements ItemRepository {
     const to = from + pageSize - 1;
     let query = supabase
       .from('items')
-      .select('id, description, status, sell_price, unique', { count: 'exact' })
+      .select('id, description, status, sell_price, unique, tags', { count: 'exact' })
       .order('id')
       .range(from, to);
     if (statusFilter !== 'all') query = query.eq('status', statusFilter);
@@ -92,7 +95,8 @@ class SupabaseItemRepository implements ItemRepository {
       description: (r as any).description ?? null,
       status: ((r as any).status || 'active') as ItemStatus,
       sellPrice: (r as any).sell_price != null ? String((r as any).sell_price) : '0',
-      unique: Boolean((r as any).unique)
+      unique: Boolean((r as any).unique),
+      tags: Array.isArray((r as any).tags) ? (r as any).tags : []
     })) as unknown as Item[];
     return { rows: mapped, total: count || 0, page, pageSize };
   }
@@ -106,8 +110,11 @@ export class ItemsService {
     const uniqueRaw = formData.get('unique');
     const sellPrice = Number(parseFloat(sellPriceRaw));
     const unique = uniqueRaw === 'on' || uniqueRaw === 'true' || uniqueRaw === '1';
+  const tagsRaw = formData.getAll('tags').map(v => String(v));
+  const tagsUnique = Array.from(new Set(tagsRaw));
+  const tags = tagsUnique.filter(t => (ITEM_TAG_VALUES as readonly string[]).includes(t)) as ItemTag[];
     const finalDescription = description || 'Untitled item';
-    await this.repo.create(finalDescription, Number.isFinite(sellPrice) ? sellPrice : 0, unique);
+    await this.repo.create(finalDescription, Number.isFinite(sellPrice) ? sellPrice : 0, unique, tags);
   }
   async updateFromForm(formData: FormData) {
     const id = this.extractId(formData);
@@ -120,8 +127,15 @@ export class ItemsService {
     const status: ItemStatus = (ITEM_STATUS_VALUES as readonly string[]).includes(rawStatus)
       ? (rawStatus as ItemStatus)
       : 'active';
+    // Tags update sentinel: if _tags_present provided, update tags (even if empty)
+    let tags: ItemTag[] | undefined = undefined;
+    if (formData.get('_tags_present')) {
+      const tagsRaw2 = formData.getAll('tags').map(v => String(v));
+      const tagsUnique2 = Array.from(new Set(tagsRaw2));
+      tags = tagsUnique2.filter(t => (ITEM_TAG_VALUES as readonly string[]).includes(t)) as ItemTag[];
+    }
     const finalDescription = description || 'Untitled item';
-  await this.repo.update(id, { description: finalDescription, status, sellPrice, unique });
+  await this.repo.update(id, { description: finalDescription, status, sellPrice, unique, tags });
   }
   async softDeleteFromForm(formData: FormData) {
     const id = this.extractId(formData);

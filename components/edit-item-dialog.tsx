@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import type { Item, ItemStatus } from "@/lib/db/schema";
-import { ITEM_STATUS_VALUES } from "@/lib/db/schema";
+import type { Item, ItemStatus, ItemTag } from "@/lib/db/schema";
+import { ITEM_STATUS_VALUES, ITEM_TAG_VALUES } from "@/lib/db/schema";
 import { useState } from "react";
 
 type InitialValues = {
@@ -19,6 +19,7 @@ type InitialValues = {
   status?: Item["status"];
   sellPrice?: number;
   unique?: Item["unique"];
+  tags?: ItemTag[];
 };
 
 type Props = {
@@ -43,12 +44,14 @@ export default function EditItemDialog({
     status: initialStatus = "active",
     sellPrice: initialSellPrice = 0,
     unique: initialUnique = false,
+    tags: initialTags = [],
   } = initialValues;
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialDescription);
   const [status, setStatus] = useState<ItemStatus>(initialStatus);
   const [sellPrice, setSellPrice] = useState<number>(initialSellPrice);
   const [unique, setUnique] = useState<boolean>(initialUnique);
+  const [tags, setTags] = useState<ItemTag[]>(initialTags);
   return (
     <Dialog
       open={open}
@@ -78,6 +81,8 @@ export default function EditItemDialog({
             fd.append("status", status);
             fd.set("sellPrice", String(sellPrice));
             fd.set("unique", unique ? "true" : "false");
+            fd.append("_tags_present", "1");
+            // Rely on native checkbox inputs for tag values; no manual append to avoid duplicates
             await action(fd);
             setOpen(false);
           }}
@@ -109,6 +114,35 @@ export default function EditItemDialog({
             checked={unique}
             onChange={(e) => setUnique(e.target.checked)}
           />
+          <div className="space-y-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Tags
+            </span>
+            <div className="flex flex-wrap gap-3">
+              {ITEM_TAG_VALUES.map((tag) => {
+                const checked = tags.includes(tag);
+                return (
+                  <label key={tag} className="flex items-center gap-1 text-xs">
+                    <input
+                      type="checkbox"
+                      name="tags"
+                      value={tag}
+                      checked={checked}
+                      onChange={(e) => {
+                        setTags((prev) =>
+                          e.target.checked
+                            ? [...prev, tag]
+                            : prev.filter((t) => t !== tag)
+                        );
+                      }}
+                      className="h-4 w-4 rounded border"
+                    />
+                    <span>{tag}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
           <Form.Selector
             id={`status-${id}`}
             name="status"
