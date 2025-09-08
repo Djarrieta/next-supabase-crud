@@ -1,12 +1,11 @@
 "use client";
-import * as React from "react";
+import { forwardRef, ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonVariant = "primary" | "outline" | "destructive";
 type ButtonSize = "default" | "sm";
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
 }
@@ -24,7 +23,7 @@ const sizeClasses: Record<ButtonSize, string> = {
   sm: "h-7 px-2 text-xs",
 };
 
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
       className,

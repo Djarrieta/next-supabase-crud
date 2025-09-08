@@ -6,14 +6,14 @@ import {
 } from "@/components/ui/selector";
 import { TagGroup, TagGroupProps } from "@/components/ui/tag";
 import { cn } from "@/lib/utils";
-import * as React from "react";
+import { FormHTMLAttributes, forwardRef, InputHTMLAttributes } from "react";
 
 // Root form component
-type FormRootProps = React.FormHTMLAttributes<HTMLFormElement> & {
+type FormRootProps = FormHTMLAttributes<HTMLFormElement> & {
   action?: (formData: FormData) => void | Promise<void>;
 };
 
-const Form = React.forwardRef<HTMLFormElement, FormRootProps>(
+const Form = forwardRef<HTMLFormElement, FormRootProps>(
   ({ className, children, ...props }, ref) => {
     return (
       <form ref={ref} className={cn("space-y-4 pt-2", className)} {...props}>
@@ -26,7 +26,7 @@ Form.displayName = "Form";
 
 // Shared props for text & number inputs
 interface BaseInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   label: string;
   name: string; // enforce name
   containerClassName?: string;
@@ -40,7 +40,7 @@ const baseLabelClasses =
 const baseInputClasses =
   "w-full rounded-md border px-3 py-2 text-sm bg-background";
 
-const TextInput = React.forwardRef<HTMLInputElement, BaseInputProps>(
+const TextInput = forwardRef<HTMLInputElement, BaseInputProps>(
   (
     {
       label,
@@ -74,7 +74,7 @@ TextInput.displayName = "FormTextInput";
 
 interface NumberInputProps extends BaseInputProps {}
 
-const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
+const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
   (
     {
       label,
@@ -108,7 +108,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 NumberInput.displayName = "FormNumberInput";
 
 interface CheckboxInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   label: string;
   name: string;
   id?: string;
@@ -116,7 +116,7 @@ interface CheckboxInputProps
   labelClassName?: string;
 }
 
-const CheckboxInput = React.forwardRef<HTMLInputElement, CheckboxInputProps>(
+const CheckboxInput = forwardRef<HTMLInputElement, CheckboxInputProps>(
   (
     {
       label,
@@ -158,7 +158,7 @@ interface SelectorInputProps extends Omit<SelectorProps, "label" | "options"> {
   options: SelectorOption[];
 }
 
-const SelectorInput = React.forwardRef<HTMLSelectElement, SelectorInputProps>(
+const SelectorInput = forwardRef<HTMLSelectElement, SelectorInputProps>(
   ({ label, name, id: customId, options, className, ...props }, ref) => {
     const id = customId || name;
     return (
@@ -185,7 +185,7 @@ interface TagsInputProps extends Omit<TagGroupProps, "wrapperClassName"> {
   wrapperClassName?: string; // allow override of flex container spacing
 }
 
-const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
+const TagsInput = forwardRef<HTMLDivElement, TagsInputProps>(
   ({ name, label = "Tags", wrapperClassName, ...props }, ref) => {
     return (
       <TagGroup

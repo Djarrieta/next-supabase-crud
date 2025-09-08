@@ -1,10 +1,16 @@
 "use client";
-import * as React from "react";
 import { cn } from "@/lib/utils";
+import {
+  forwardRef,
+  HTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  useState,
+} from "react";
 
 export type TagVariant = "success" | "warning" | "error" | "default";
 
-export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
+export interface TagProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: TagVariant;
 }
 
@@ -18,7 +24,7 @@ const variantClasses: Record<TagVariant, string> = {
   default: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
 };
 
-export const Tag = React.forwardRef<HTMLSpanElement, TagProps>(
+export const Tag = forwardRef<HTMLSpanElement, TagProps>(
   ({ className, variant = "default", children, ...props }, ref) => {
     return (
       <span
@@ -39,14 +45,14 @@ Tag.displayName = "Tag";
 
 // Checkbox tag used inside forms
 export interface TagCheckboxProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   value: string;
-  children?: React.ReactNode; // label text
+  children?: ReactNode; // label text
   className?: string; // applied to wrapper label
   inputClassName?: string; // applied to input element
 }
 
-export const TagCheckbox = React.forwardRef<HTMLInputElement, TagCheckboxProps>(
+export const TagCheckbox = forwardRef<HTMLInputElement, TagCheckboxProps>(
   ({ value, children, className, inputClassName, ...props }, ref) => {
     return (
       <label className={cn("flex items-center gap-1 text-xs", className)}>
@@ -91,7 +97,7 @@ export interface TagGroupProps {
   tagInputClassName?: string; // passed to each Tag input
 }
 
-export const TagGroup = React.forwardRef<HTMLDivElement, TagGroupProps>(
+export const TagGroup = forwardRef<HTMLDivElement, TagGroupProps>(
   (
     {
       name,
@@ -109,9 +115,7 @@ export const TagGroup = React.forwardRef<HTMLDivElement, TagGroupProps>(
     ref
   ) => {
     const isControlled = Array.isArray(value);
-    const [internal, setInternal] = React.useState<string[]>(
-      defaultValue || []
-    );
+    const [internal, setInternal] = useState<string[]>(defaultValue || []);
     const current = isControlled ? (value as string[]) : internal;
 
     function toggle(val: string, checked: boolean) {

@@ -1,6 +1,6 @@
 "use client";
-import * as React from "react";
 import { cn } from "@/lib/utils";
+import { ChangeEvent, forwardRef, SelectHTMLAttributes } from "react";
 
 type SelectorVariant = "default" | "outline";
 type SelectorSize = "default" | "sm";
@@ -12,10 +12,7 @@ export interface SelectorOption {
 }
 
 export interface SelectorProps
-  extends Omit<
-    React.SelectHTMLAttributes<HTMLSelectElement>,
-    "onChange" | "size"
-  > {
+  extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "onChange" | "size"> {
   options: SelectorOption[];
   /** Current value */
   value?: string | number;
@@ -41,7 +38,7 @@ const sizeClasses: Record<SelectorSize, string> = {
   sm: "h-7 px-2 text-xs",
 };
 
-export const Selector = React.forwardRef<HTMLSelectElement, SelectorProps>(
+export const Selector = forwardRef<HTMLSelectElement, SelectorProps>(
   (
     {
       className,
@@ -58,7 +55,7 @@ export const Selector = React.forwardRef<HTMLSelectElement, SelectorProps>(
     },
     ref
   ) => {
-    function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    function handleChange(e: ChangeEvent<HTMLSelectElement>) {
       onValueChange?.(e.target.value);
     }
     const selectEl = (
