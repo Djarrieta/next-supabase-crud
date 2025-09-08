@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { ITEM_STATUS_VALUES } from "@/lib/db/schema";
 import type { ItemStatus, Item } from "@/lib/db/schema";
 import {
   Dialog,
@@ -24,6 +25,10 @@ type Props = {
   id: number;
   initialValues: InitialValues;
 };
+
+const EDITABLE_STATUS_OPTIONS = ITEM_STATUS_VALUES.filter(
+  (s): s is ItemStatus => s !== "archived"
+);
 
 export default function EditItemDialog({
   action,
@@ -143,9 +148,11 @@ export default function EditItemDialog({
               onChange={(e) => setStatus(e.target.value as ItemStatus)}
               className="w-full rounded-md border px-3 py-2 text-sm bg-background"
             >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="archived">Archived</option>
+              {EDITABLE_STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex justify-end gap-2 pt-2">
