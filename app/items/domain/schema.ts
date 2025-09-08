@@ -2,7 +2,7 @@
 // Constraints: only Drizzle pg-core helpers & pure utilities. No React/Next/UI.
 // To add new feature schemas: create app/<feature>/domain/schema.ts and export via lib/db/schema.ts aggregator.
 
-import { pgTable, bigint, text, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, bigint, text, pgEnum, numeric, boolean } from 'drizzle-orm/pg-core';
 
 // Reusable status value list & enum
 // NOTE: Keep ITEM_STATUS_VALUES and pgEnum definition in sync if edited.
@@ -15,6 +15,10 @@ export const items = pgTable('items', {
   description: text('description'),
   // Soft delete / lifecycle status: active | inactive | archived
   status: itemStatusEnum('status').notNull().default('active'),
+  // Monetary sell price (stored as numeric(10,2)). Defaults to 0.00
+  sellPrice: numeric('sell_price', { precision: 10, scale: 2 }).notNull().default('0'),
+  // Whether the item is unique (boolean flag). Defaults to false
+  unique: boolean('unique').notNull().default(false),
 });
 
 export type ItemStatusFilter = ItemStatus | 'all';

@@ -49,6 +49,37 @@ export default function AddItemDialog({ action }: Props) {
               autoFocus
             />
           </div>
+          <div className="space-y-2">
+            <label
+              htmlFor="sellPrice"
+              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Sell Price
+            </label>
+            <input
+              id="sellPrice"
+              name="sellPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue="0"
+              className="w-full rounded-md border px-3 py-2 text-sm bg-background"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              id="unique"
+              name="unique"
+              type="checkbox"
+              className="h-4 w-4 rounded border"
+            />
+            <label
+              htmlFor="unique"
+              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Unique
+            </label>
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <DialogClose asChild>
               <button

@@ -17,6 +17,8 @@ type Props = {
   id: number;
   initialDescription: string;
   initialStatus?: ItemStatus;
+  initialSellPrice?: number;
+  initialUnique?: boolean;
 };
 
 export default function EditItemDialog({
@@ -25,10 +27,14 @@ export default function EditItemDialog({
   id,
   initialDescription,
   initialStatus = "active",
+  initialSellPrice = 0,
+  initialUnique = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialDescription);
   const [status, setStatus] = useState<ItemStatus>(initialStatus);
+  const [sellPrice, setSellPrice] = useState<number>(initialSellPrice);
+  const [unique, setUnique] = useState<boolean>(initialUnique);
   return (
     <Dialog
       open={open}
@@ -37,6 +43,8 @@ export default function EditItemDialog({
         if (!o) {
           setValue(initialDescription);
           setStatus(initialStatus);
+          setSellPrice(initialSellPrice);
+          setUnique(initialUnique);
         }
       }}
     >
@@ -54,6 +62,8 @@ export default function EditItemDialog({
           action={async (fd) => {
             fd.append("id", String(id));
             fd.append("status", status);
+            fd.set("sellPrice", String(sellPrice));
+            fd.set("unique", unique ? "true" : "false");
             await action(fd);
             setOpen(false);
           }}
@@ -77,6 +87,40 @@ export default function EditItemDialog({
               maxLength={500}
               autoFocus
             />
+          </div>
+          <div className="space-y-2">
+            <label
+              htmlFor={`sellPrice-${id}`}
+              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Sell Price
+            </label>
+            <input
+              id={`sellPrice-${id}`}
+              name="sellPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              value={sellPrice}
+              onChange={(e) => setSellPrice(parseFloat(e.target.value) || 0)}
+              className="w-full rounded-md border px-3 py-2 text-sm bg-background"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              id={`unique-${id}`}
+              name="unique"
+              type="checkbox"
+              checked={unique}
+              onChange={(e) => setUnique(e.target.checked)}
+              className="h-4 w-4 rounded border"
+            />
+            <label
+              htmlFor={`unique-${id}`}
+              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Unique
+            </label>
           </div>
           <div className="space-y-2">
             <label

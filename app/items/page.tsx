@@ -64,27 +64,24 @@ export default async function ItemsPage({
     {
       id: "description",
       header: "Description",
-      cell: (row) => row.description ?? "",
-    },
-    {
-      id: "status",
-      header: <span className="w-28 inline-block">Status</span>,
-      widthClass: "w-28",
       cell: (row) => (
-        <span
-          className={
-            row.status === "active"
-              ? "inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700"
-              : "inline-flex rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700"
-          }
-        >
-          {row.status}
-        </span>
+        <div className="flex flex-col">
+          <span>{row.description ?? ""}</span>
+          <div>
+            {row.status === "active" ? (
+              <span className="text-xs font-medium text-green-700">Active</span>
+            ) : (
+              <span className="text-xs font-medium text-yellow-700">
+                Inactive
+              </span>
+            )}
+          </div>
+        </div>
       ),
     },
     {
       id: "actions",
-      header: <span className="w-28 inline-block text-right">Actions</span>,
+      header: <></>,
       alignRight: true,
       widthClass: "w-28",
       cell: (row) => (
@@ -92,6 +89,8 @@ export default async function ItemsPage({
           id={row.id}
           initialDescription={row.description ?? ""}
           initialStatus={row.status}
+          initialSellPrice={(row as any).sellPrice || 0}
+          initialUnique={Boolean((row as any).unique)}
           action={updateItem}
           deleteAction={deleteItem}
         />
@@ -111,7 +110,7 @@ export default async function ItemsPage({
   return (
     <TableTemplate
       title="Items"
-      description='Listing all records from the Supabase table "items".'
+      description="Listing all items."
       rows={itemsData}
       totalRows={total}
       page={page}
