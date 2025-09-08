@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import type { ItemStatus } from "@/lib/db/schema";
+import type { ItemStatus, Item } from "@/lib/db/schema";
 import {
   Dialog,
   DialogTrigger,
@@ -11,25 +11,32 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 
+type InitialValues = {
+  description: string;
+  status?: Item["status"];
+  sellPrice?: number;
+  unique?: Item["unique"];
+};
+
 type Props = {
   action: (formData: FormData) => Promise<void>;
   deleteAction?: (formData: FormData) => Promise<void>;
   id: number;
-  initialDescription: string;
-  initialStatus?: ItemStatus;
-  initialSellPrice?: number;
-  initialUnique?: boolean;
+  initialValues: InitialValues;
 };
 
 export default function EditItemDialog({
   action,
   deleteAction,
   id,
-  initialDescription,
-  initialStatus = "active",
-  initialSellPrice = 0,
-  initialUnique = false,
+  initialValues,
 }: Props) {
+  const {
+    description: initialDescription,
+    status: initialStatus = "active",
+    sellPrice: initialSellPrice = 0,
+    unique: initialUnique = false,
+  } = initialValues;
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialDescription);
   const [status, setStatus] = useState<ItemStatus>(initialStatus);

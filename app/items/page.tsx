@@ -87,10 +87,12 @@ export default async function ItemsPage({
       cell: (row) => (
         <EditItemDialog
           id={row.id}
-          initialDescription={row.description ?? ""}
-          initialStatus={row.status}
-          initialSellPrice={(row as any).sellPrice || 0}
-          initialUnique={Boolean((row as any).unique)}
+          initialValues={{
+            description: row.description ?? "",
+            status: row.status,
+            sellPrice: Number(row.sellPrice),
+            unique: row.unique,
+          }}
           action={updateItem}
           deleteAction={deleteItem}
         />
