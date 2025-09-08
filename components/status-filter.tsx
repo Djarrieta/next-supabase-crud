@@ -2,11 +2,11 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ItemStatus } from "@/lib/db/schema";
 import { useTransition } from "react";
+import { Selector } from "./ui/selector";
 
 const options: { value: ItemStatus | "all"; label: string }[] = [
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
-  { value: "archived", label: "Archived" },
   { value: "all", label: "All" },
 ];
 
@@ -19,8 +19,7 @@ export default function StatusFilter({
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const val = e.target.value;
+  function onChange(val: string) {
     const sp = new URLSearchParams(params.toString());
     // Reset pagination when filter changes
     if (sp.has("page")) sp.delete("page");
@@ -36,22 +35,12 @@ export default function StatusFilter({
   }
 
   return (
-    <div className="space-y-1">
-      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        Status Filter
-      </label>
-      <select
-        onChange={onChange}
-        value={current}
-        className="rounded-md border bg-background px-2 py-1.5 text-sm"
-        disabled={isPending}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </div>
+    <Selector
+      value={current}
+      options={options}
+      onValueChange={onChange}
+      disabled={isPending}
+      size="sm"
+    />
   );
 }
