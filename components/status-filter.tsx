@@ -1,14 +1,20 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { ItemStatus } from "@/lib/db/schema";
 import { useTransition } from "react";
 
-const options = [
+const options: { value: ItemStatus | "all"; label: string }[] = [
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
+  { value: "archived", label: "Archived" },
   { value: "all", label: "All" },
 ];
 
-export default function StatusFilter({ current }: { current: string }) {
+export default function StatusFilter({
+  current,
+}: {
+  current: ItemStatus | "all";
+}) {
   const router = useRouter();
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();

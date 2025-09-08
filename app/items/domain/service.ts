@@ -4,15 +4,16 @@
 // Allowed: lib/db, lib/supabaseClient, other domain modules, value objects, utilities.
 
 import { getSupabaseClient } from '@/lib/supabaseClient';
-import { getDb, Item, items } from '@/lib/db/client';
+import { getDb, Item, items, ItemStatus, ITEM_STATUS_VALUES } from '@/lib/db/client';
 import { eq, sql } from 'drizzle-orm';
 
-export interface ItemUpdate { description?: string; status?: string }
+export interface ItemUpdate { description?: string; status?: ItemStatus }
+type ItemStatusFilter = ItemStatus | 'all';
 export interface PaginatedResult<T> { rows: T[]; total: number; page: number; pageSize: number }
 export interface ItemRepository {
   create(description: string): Promise<void>;
   update(id: number, update: ItemUpdate): Promise<void>;
-  list(statusFilter: string, page: number, pageSize: number): Promise<PaginatedResult<Item>>;
+  list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>>;
 }
 
 class DrizzleItemRepository implements ItemRepository {
@@ -27,7 +28,7 @@ class DrizzleItemRepository implements ItemRepository {
     if (Object.keys(updateData).length === 0) return;
     await getDb().update(items).set(updateData).where(eq(items.id, id));
   }
-  async list(statusFilter: string, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
+  async list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
     const db = getDb();
     const offset = (page - 1) * pageSize;
     // total count
@@ -63,7 +64,7 @@ class SupabaseItemRepository implements ItemRepository {
       .single();
     if (error) throw error;
   }
-  async list(statusFilter: string, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
+  async list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
     const supabase = getSupabaseClient();
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -90,7 +91,10 @@ export class ItemsService {
   async updateFromForm(formData: FormData) {
     const id = this.extractId(formData);
     const description = String(formData.get('description') || '').trim();
-    const status = String(formData.get('status') || 'active').trim();
+    const rawStatus = String(formData.get('status') || 'active').trim();
+    const status: ItemStatus = (ITEM_STATUS_VALUES as readonly string[]).includes(rawStatus)
+      ? (rawStatus as ItemStatus)
+      : 'active';
     const finalDescription = description || 'Untitled item';
     await this.repo.update(id, { description: finalDescription, status });
   }
@@ -98,9 +102,9 @@ export class ItemsService {
     const id = this.extractId(formData);
     await this.repo.update(id, { status: 'archived' });
   }
-  async list(statusFilter: string, page: number, pageSize: number) {
-    const allowed = ['active', 'inactive', 'all'];
-    const filter = allowed.includes(statusFilter) ? statusFilter : 'active';
+  async list(statusFilter: ItemStatusFilter, page: number, pageSize: number) {
+    const allowed: ItemStatusFilter[] = ['active', 'inactive', 'archived', 'all'];
+    const filter: ItemStatusFilter = allowed.includes(statusFilter) ? statusFilter : 'active';
     const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
     const safePageSize = Number.isFinite(pageSize) && pageSize > 0 && pageSize <= 100 ? Math.floor(pageSize) : 10;
     return this.repo.list(filter, safePage, safePageSize);

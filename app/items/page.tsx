@@ -3,6 +3,7 @@ import EditItemDialog from "@/components/edit-item-dialog";
 import { createItem, updateItem, deleteItem, listItems } from "./actions";
 import StatusFilter from "@/components/status-filter";
 import { Item } from "./domain/schema";
+import type { ItemStatus } from "@/lib/db/schema";
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
@@ -22,8 +23,11 @@ export default async function ItemsPage({
   // Derive status filter from search params. Default to 'active'. Acceptable values: active | inactive | all
   const raw = searchParams?.status;
   const statusParam = Array.isArray(raw) ? raw[0] : raw;
-  const statusFilter = ["active", "inactive", "all"].includes(statusParam || "")
-    ? (statusParam as string)
+  const statusAllowed: (ItemStatus | "all")[] = ["active", "inactive", "all"];
+  const statusFilter: ItemStatus | "all" = statusAllowed.includes(
+    statusParam as ItemStatus | "all"
+  )
+    ? (statusParam as ItemStatus | "all")
     : "active";
   // pagination params
   const rawPage = searchParams?.page;

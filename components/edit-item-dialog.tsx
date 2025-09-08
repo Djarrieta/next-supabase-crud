@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import type { ItemStatus } from "@/lib/db/schema";
 import {
   Dialog,
   DialogTrigger,
@@ -15,7 +16,7 @@ type Props = {
   deleteAction?: (formData: FormData) => Promise<void>;
   id: number;
   initialDescription: string;
-  initialStatus?: string;
+  initialStatus?: ItemStatus;
 };
 
 export default function EditItemDialog({
@@ -27,7 +28,7 @@ export default function EditItemDialog({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialDescription);
-  const [status, setStatus] = useState(initialStatus);
+  const [status, setStatus] = useState<ItemStatus>(initialStatus);
   return (
     <Dialog
       open={open}
@@ -88,11 +89,12 @@ export default function EditItemDialog({
               id={`status-${id}`}
               name="status"
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => setStatus(e.target.value as ItemStatus)}
               className="w-full rounded-md border px-3 py-2 text-sm bg-background"
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
+              <option value="archived">Archived</option>
             </select>
           </div>
           <div className="flex justify-end gap-2 pt-2">

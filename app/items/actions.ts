@@ -5,6 +5,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { getItemsService } from "@/app/items/domain/service";
+import type { ItemStatus } from '@/lib/db/schema';
 
 export async function createItem(formData: FormData) {
   try {
@@ -36,7 +37,7 @@ export async function deleteItem(formData: FormData) {
   revalidatePath("/items");
 }
 
-export async function listItems(statusFilter: string, page: number, pageSize: number) {
+export async function listItems(statusFilter: ItemStatus | 'all', page: number, pageSize: number) {
   try {
     return await getItemsService().list(statusFilter, page, pageSize);
   } catch (e) {
