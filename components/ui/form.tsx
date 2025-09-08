@@ -1,6 +1,11 @@
 "use client";
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import {
+  Selector,
+  SelectorProps,
+  SelectorOption,
+} from "@/components/ui/selector";
 
 // Root form component
 type FormRootProps = React.FormHTMLAttributes<HTMLFormElement> & {
@@ -145,10 +150,38 @@ CheckboxInput.displayName = "FormCheckboxInput";
 
 // (Optional) placeholder for future select etc.
 
+interface SelectorInputProps extends Omit<SelectorProps, "label" | "options"> {
+  label: string;
+  name: string;
+  id?: string;
+  options: SelectorOption[];
+}
+
+const SelectorInput = React.forwardRef<HTMLSelectElement, SelectorInputProps>(
+  ({ label, name, id: customId, options, className, ...props }, ref) => {
+    const id = customId || name;
+    return (
+      <Selector
+        ref={ref}
+        id={id}
+        name={name}
+        label={label}
+        options={options}
+        wrapperClassName="space-y-2"
+        labelClassName={baseLabelClasses}
+        className={cn(baseInputClasses, className)}
+        {...props}
+      />
+    );
+  }
+);
+SelectorInput.displayName = "FormSelectorInput";
+
 export const FormNamespace = Object.assign(Form, {
   TextInput,
   NumberInput,
   CheckboxInput,
+  Selector: SelectorInput,
 });
 
 export { FormNamespace as Form };

@@ -23,6 +23,12 @@ export interface SelectorProps
   onValueChange?: (value: string) => void;
   variant?: SelectorVariant;
   size?: SelectorSize; // custom visual size, not the native numeric "size" attribute
+  /** Optional label rendered above the selector */
+  label?: string;
+  /** Class applied to wrapping container when label provided */
+  wrapperClassName?: string;
+  /** Class applied to the label element */
+  labelClassName?: string;
 }
 
 const variantClasses: Record<SelectorVariant, string> = {
@@ -45,6 +51,9 @@ export const Selector = React.forwardRef<HTMLSelectElement, SelectorProps>(
       size = "default",
       disabled,
       value,
+      label,
+      wrapperClassName,
+      labelClassName,
       ...props
     },
     ref
@@ -52,7 +61,7 @@ export const Selector = React.forwardRef<HTMLSelectElement, SelectorProps>(
     function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
       onValueChange?.(e.target.value);
     }
-    return (
+    const selectEl = (
       <select
         ref={ref}
         value={value}
@@ -72,6 +81,24 @@ export const Selector = React.forwardRef<HTMLSelectElement, SelectorProps>(
           </option>
         ))}
       </select>
+    );
+
+    if (!label) return selectEl;
+
+    const id = props.id; // if consumer passes id we use it for htmlFor
+    return (
+      <div className={cn("space-y-2", wrapperClassName)}>
+        <label
+          htmlFor={id}
+          className={cn(
+            "text-xs font-medium uppercase tracking-wide text-muted-foreground",
+            labelClassName
+          )}
+        >
+          {label}
+        </label>
+        {selectEl}
+      </div>
     );
   }
 );

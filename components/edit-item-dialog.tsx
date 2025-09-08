@@ -109,27 +109,17 @@ export default function EditItemDialog({
             checked={unique}
             onChange={(e) => setUnique(e.target.checked)}
           />
-          <div className="space-y-2">
-            <label
-              htmlFor={`status-${id}`}
-              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              Status
-            </label>
-            <select
-              id={`status-${id}`}
-              name="status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as ItemStatus)}
-              className="w-full rounded-md border px-3 py-2 text-sm bg-background"
-            >
-              {EDITABLE_STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Form.Selector
+            id={`status-${id}`}
+            name="status"
+            label="Status"
+            value={status}
+            onValueChange={(v) => setStatus(v as ItemStatus)}
+            options={EDITABLE_STATUS_OPTIONS.map((s) => ({
+              value: s,
+              label: s.charAt(0).toUpperCase() + s.slice(1),
+            }))}
+          />
           <div className="flex justify-end gap-2 pt-2">
             {deleteAction && (
               <Button
