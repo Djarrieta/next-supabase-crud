@@ -9,6 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
 import type { Item, ItemStatus } from "@/lib/db/schema";
 import { ITEM_STATUS_VALUES } from "@/lib/db/schema";
 import { useState } from "react";
@@ -62,9 +63,9 @@ export default function EditItemDialog({
       }}
     >
       <DialogTrigger asChild>
-        <button className="inline-flex h-7 items-center rounded-md border bg-background px-2 text-xs font-medium shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Button variant="outline" size="sm">
           Edit
-        </button>
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -131,7 +132,8 @@ export default function EditItemDialog({
           </div>
           <div className="flex justify-end gap-2 pt-2">
             {deleteAction && (
-              <button
+              <Button
+                variant="destructive"
                 type="button"
                 onClick={async () => {
                   const fd = new FormData();
@@ -139,25 +141,18 @@ export default function EditItemDialog({
                   await deleteAction(fd);
                   setOpen(false);
                 }}
-                className="inline-flex h-9 items-center rounded-md border border-destructive/50 bg-destructive/10 px-3 text-sm font-medium text-destructive shadow-sm hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Archive
-              </button>
+              </Button>
             )}
             <DialogClose asChild>
-              <button
-                type="button"
-                className="inline-flex h-9 items-center rounded-md border bg-background px-4 text-sm font-medium shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
+              <Button variant="outline" type="button">
                 Cancel
-              </button>
+              </Button>
             </DialogClose>
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-            >
+            <Button type="submit" variant="primary">
               Save
-            </button>
+            </Button>
           </div>
         </Form>
       </DialogContent>

@@ -9,6 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 type Props = { action: (formData: FormData) => Promise<void> };
@@ -18,9 +19,7 @@ export default function AddItemDialog({ action }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
-          New Item
-        </button>
+        <Button variant="primary">New Item</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -50,19 +49,13 @@ export default function AddItemDialog({ action }: Props) {
           <Form.CheckboxInput name="unique" label="Unique" />
           <div className="flex justify-end gap-2 pt-2">
             <DialogClose asChild>
-              <button
-                type="button"
-                className="inline-flex h-9 items-center rounded-md border bg-background px-4 text-sm font-medium shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
+              <Button variant="outline" type="button">
                 Cancel
-              </button>
+              </Button>
             </DialogClose>
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-            >
+            <Button type="submit" variant="primary">
               Save
-            </button>
+            </Button>
           </div>
         </Form>
       </DialogContent>
