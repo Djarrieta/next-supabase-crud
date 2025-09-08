@@ -1,11 +1,12 @@
 "use client";
-import * as React from "react";
-import { cn } from "@/lib/utils";
 import {
   Selector,
-  SelectorProps,
   SelectorOption,
+  SelectorProps,
 } from "@/components/ui/selector";
+import { TagGroup, TagGroupProps } from "@/components/ui/tag";
+import { cn } from "@/lib/utils";
+import * as React from "react";
 
 // Root form component
 type FormRootProps = React.FormHTMLAttributes<HTMLFormElement> & {
@@ -177,11 +178,34 @@ const SelectorInput = React.forwardRef<HTMLSelectElement, SelectorInputProps>(
 );
 SelectorInput.displayName = "FormSelectorInput";
 
+// Tags (checkbox group) input wrapper
+interface TagsInputProps extends Omit<TagGroupProps, "wrapperClassName"> {
+  name: string;
+  label?: string;
+  wrapperClassName?: string; // allow override of flex container spacing
+}
+
+const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
+  ({ name, label = "Tags", wrapperClassName, ...props }, ref) => {
+    return (
+      <TagGroup
+        ref={ref}
+        name={name}
+        label={label}
+        wrapperClassName={wrapperClassName}
+        {...props}
+      />
+    );
+  }
+);
+TagsInput.displayName = "FormTagsInput";
+
 export const FormNamespace = Object.assign(Form, {
   TextInput,
   NumberInput,
   CheckboxInput,
   Selector: SelectorInput,
+  Tags: TagsInput,
 });
 
 export { FormNamespace as Form };

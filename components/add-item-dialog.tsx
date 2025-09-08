@@ -48,24 +48,7 @@ export default function AddItemDialog({ action }: Props) {
             defaultValue={0}
           />
           <Form.CheckboxInput name="unique" label="Unique" />
-          <div className="space-y-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Tags
-            </span>
-            <div className="flex flex-wrap gap-3">
-              {ITEM_TAG_VALUES.map((tag) => (
-                <label key={tag} className="flex items-center gap-1 text-xs">
-                  <input
-                    type="checkbox"
-                    name="tags"
-                    value={tag}
-                    className="h-4 w-4 rounded border"
-                  />
-                  <span>{tag}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          <Form.Tags name="tags" options={ITEM_TAG_VALUES} />
           <div className="flex justify-end gap-2 pt-2">
             <DialogClose asChild>
               <Button variant="outline" type="button">

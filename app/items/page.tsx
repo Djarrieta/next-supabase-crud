@@ -4,7 +4,7 @@ import StatusFilter from "@/components/status-filter";
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
-import { Tag } from "@/components/ui/tag";
+import { Tag, TagVariant } from "@/components/ui/tag";
 import { createItem, deleteItem, listItems, updateItem } from "./actions";
 import { MAX_PAGE_SIZE } from "./constants";
 import { Item, ItemStatusFilter } from "./domain/schema";
@@ -69,11 +69,20 @@ export default async function ItemsPage({
         <div className="flex flex-col">
           <span>{row.description ?? ""}</span>
           <div className="flex flex-wrap gap-1 pt-1">
-            {row.status === "active" ? (
-              <Tag variant="active">Active</Tag>
-            ) : (
-              <Tag variant="inactive">Inactive</Tag>
-            )}
+            {(() => {
+              const variantMap: Record<string, TagVariant> = {
+                active: "success",
+                inactive: "warning",
+                archived: "error",
+              };
+
+              const variant = variantMap[row.status] ?? "default";
+              return (
+                <Tag variant={variant}>
+                  {variantMap[row.status] ?? row.status}
+                </Tag>
+              );
+            })()}
             {Array.isArray((row as any).tags) &&
               (Array.from(new Set((row as any).tags)) as string[]).map((t) => (
                 <Tag key={t} variant="default">

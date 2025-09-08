@@ -114,35 +114,12 @@ export default function EditItemDialog({
             checked={unique}
             onChange={(e) => setUnique(e.target.checked)}
           />
-          <div className="space-y-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Tags
-            </span>
-            <div className="flex flex-wrap gap-3">
-              {ITEM_TAG_VALUES.map((tag) => {
-                const checked = tags.includes(tag);
-                return (
-                  <label key={tag} className="flex items-center gap-1 text-xs">
-                    <input
-                      type="checkbox"
-                      name="tags"
-                      value={tag}
-                      checked={checked}
-                      onChange={(e) => {
-                        setTags((prev) =>
-                          e.target.checked
-                            ? [...prev, tag]
-                            : prev.filter((t) => t !== tag)
-                        );
-                      }}
-                      className="h-4 w-4 rounded border"
-                    />
-                    <span>{tag}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+          <Form.Tags
+            name="tags"
+            options={ITEM_TAG_VALUES}
+            value={tags}
+            onValueChange={(vals) => setTags(vals as typeof tags)}
+          />
           <Form.Selector
             id={`status-${id}`}
             name="status"
