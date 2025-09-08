@@ -6,9 +6,10 @@
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getDb, Item, items, ItemStatus, ITEM_STATUS_VALUES } from '@/lib/db/client';
 import { eq, sql } from 'drizzle-orm';
+import { ItemStatusFilter } from '@/app/items/domain/schema';
 
 export interface ItemUpdate { description?: string; status?: ItemStatus }
-type ItemStatusFilter = ItemStatus | 'all';
+
 export interface PaginatedResult<T> { rows: T[]; total: number; page: number; pageSize: number }
 export interface ItemRepository {
   create(description: string): Promise<void>;

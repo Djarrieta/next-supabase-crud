@@ -17,5 +17,6 @@ export const items = pgTable('items', {
   status: itemStatusEnum('status').notNull().default('active'),
 });
 
+export type ItemStatusFilter = ItemStatus | 'all';
 export type Item = typeof items.$inferSelect;
 export type NewItem = typeof items.$inferInsert;
