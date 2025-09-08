@@ -1,16 +1,17 @@
 "use client";
-import { useState } from "react";
-import { ITEM_STATUS_VALUES } from "@/lib/db/schema";
-import type { ItemStatus, Item } from "@/lib/db/schema";
 import {
   Dialog,
-  DialogTrigger,
+  DialogClose,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+import { Form } from "@/components/ui/form";
+import type { Item, ItemStatus } from "@/lib/db/schema";
+import { ITEM_STATUS_VALUES } from "@/lib/db/schema";
+import { useState } from "react";
 
 type InitialValues = {
   description: string;
@@ -70,7 +71,7 @@ export default function EditItemDialog({
           <DialogTitle>Edit Item</DialogTitle>
           <DialogDescription>Update the existing record.</DialogDescription>
         </DialogHeader>
-        <form
+        <Form
           action={async (fd) => {
             fd.append("id", String(id));
             fd.append("status", status);
@@ -79,61 +80,34 @@ export default function EditItemDialog({
             await action(fd);
             setOpen(false);
           }}
-          className="space-y-4 pt-2"
         >
           <input type="hidden" name="id" value={id} />
-          <div className="space-y-2">
-            <label
-              htmlFor={`description-${id}`}
-              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              Description
-            </label>
-            <input
-              id={`description-${id}`}
-              name="description"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="Item description"
-              className="w-full rounded-md border px-3 py-2 text-sm bg-background"
-              maxLength={500}
-              autoFocus
-            />
-          </div>
-          <div className="space-y-2">
-            <label
-              htmlFor={`sellPrice-${id}`}
-              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              Sell Price
-            </label>
-            <input
-              id={`sellPrice-${id}`}
-              name="sellPrice"
-              type="number"
-              step="0.01"
-              min="0"
-              value={sellPrice}
-              onChange={(e) => setSellPrice(parseFloat(e.target.value) || 0)}
-              className="w-full rounded-md border px-3 py-2 text-sm bg-background"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              id={`unique-${id}`}
-              name="unique"
-              type="checkbox"
-              checked={unique}
-              onChange={(e) => setUnique(e.target.checked)}
-              className="h-4 w-4 rounded border"
-            />
-            <label
-              htmlFor={`unique-${id}`}
-              className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              Unique
-            </label>
-          </div>
+          <Form.TextInput
+            name="description"
+            label="Description"
+            id={`description-${id}`}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Item description"
+            maxLength={500}
+            autoFocus
+          />
+          <Form.NumberInput
+            name="sellPrice"
+            label="Sell Price"
+            id={`sellPrice-${id}`}
+            step="0.01"
+            min={0}
+            value={sellPrice}
+            onChange={(e) => setSellPrice(parseFloat(e.target.value) || 0)}
+          />
+          <Form.CheckboxInput
+            name="unique"
+            label="Unique"
+            id={`unique-${id}`}
+            checked={unique}
+            onChange={(e) => setUnique(e.target.checked)}
+          />
           <div className="space-y-2">
             <label
               htmlFor={`status-${id}`}
@@ -185,7 +159,7 @@ export default function EditItemDialog({
               Save
             </button>
           </div>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
