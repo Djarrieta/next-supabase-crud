@@ -77,11 +77,7 @@ export default async function ItemsPage({
               };
 
               const variant = variantMap[row.status] ?? "default";
-              return (
-                <Tag variant={variant}>
-                  {variantMap[row.status] ?? row.status}
-                </Tag>
-              );
+              return <Tag variant={variant}>{row.status}</Tag>;
             })()}
             {Array.isArray((row as any).tags) &&
               (Array.from(new Set((row as any).tags)) as string[]).map((t) => (
