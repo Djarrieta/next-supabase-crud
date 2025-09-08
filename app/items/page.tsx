@@ -4,6 +4,7 @@ import StatusFilter from "@/components/status-filter";
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
+import { Tag } from "@/components/ui/tag";
 import { createItem, deleteItem, listItems, updateItem } from "./actions";
 import { MAX_PAGE_SIZE } from "./constants";
 import { Item, ItemStatusFilter } from "./domain/schema";
@@ -69,11 +70,9 @@ export default async function ItemsPage({
           <span>{row.description ?? ""}</span>
           <div>
             {row.status === "active" ? (
-              <span className="text-xs font-medium text-green-700">Active</span>
+              <Tag variant="active">Active</Tag>
             ) : (
-              <span className="text-xs font-medium text-yellow-700">
-                Inactive
-              </span>
+              <Tag variant="inactive">Inactive</Tag>
             )}
           </div>
         </div>
