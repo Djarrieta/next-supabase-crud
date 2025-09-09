@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -9,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { useState } from "react";
 // For one-to-many model tags are ad-hoc per item; we allow user to pick from existing names (optional) but carry names not ids.
 type TagOption = { name: string };
@@ -58,6 +59,15 @@ export default function AddItemDialog({ action, availableTags }: Props) {
               label: t.name,
             }))}
           />
+          <div className="-mt-2 mb-2 text-xs text-muted-foreground">
+            Need to add or edit tags? {""}
+            <Link
+              href="/items/tags"
+              className="underline underline-offset-2 hover:text-primary"
+            >
+              Manage tags
+            </Link>
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <DialogClose asChild>
               <Button variant="outline" type="button">

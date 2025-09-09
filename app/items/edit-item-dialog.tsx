@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -9,9 +10,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
 import type { Item, ItemStatus } from "@/lib/db/schema";
 import { ITEM_STATUS_VALUES } from "@/lib/db/schema";
+import Link from "next/link";
 import { useState } from "react";
 
 type InitialValues = {
@@ -125,6 +126,16 @@ export default function EditItemDialog({
             value={tagNames}
             onValueChange={(vals) => setTagNames(vals as string[])}
           />
+          <div className="-mt-2 mb-2 text-xs text-muted-foreground">
+            Need to add or edit tags? {""}
+            <Link
+              href="/items/tags"
+              className="underline underline-offset-2 hover:text-primary"
+            >
+              Manage tags
+            </Link>
+          </div>
+
           <Form.Selector
             id={`status-${id}`}
             name="status"
