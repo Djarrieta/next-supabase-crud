@@ -1,7 +1,9 @@
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
-import { listItemTags } from "./actions";
+import { listItemTags, updateItemTag, deleteItemTag, createItemTag } from "./actions";
+import EditItemTagDialog from "@/components/edit-item-tag-dialog";
+import AddItemTagDialog from './add-item-tag-dialog';
 import { ITEM_TAGS_MAX_PAGE_SIZE } from "./constants";
 import {
   parsePagination,
@@ -25,12 +27,32 @@ export default async function ItemTagsPage({
     defaultPageSize: ITEM_TAGS_MAX_PAGE_SIZE,
     maxPageSize: ITEM_TAGS_MAX_PAGE_SIZE,
   }));
+  let itemOptions: { id: number; label: string }[] = [];
   try {
     const result = await listItemTags(page, pageSize);
     rows = result?.rows as ItemTagRow[];
     total = result?.total || 0;
     page = result?.page || page;
     pageSize = result?.pageSize || pageSize;
+    // Fetch minimal items list for selector (limit to 200 to keep payload small)
+    try {
+      const useDrizzle = Boolean(process.env.DATABASE_URL || process.env.DRIZZLE_DATABASE_URL);
+      if (useDrizzle) {
+        const { getDb, items } = await import('@/lib/db/client');
+        const db = getDb();
+        const itemRows: any[] = await db.select().from(items).orderBy(items.id).limit(200);
+        itemOptions = itemRows.map(r => ({ id: Number(r.id), label: r.description || `Item ${r.id}` }));
+      } else {
+        const { getSupabaseClient } = await import('@/lib/supabaseClient');
+        const supabase = getSupabaseClient();
+        const { data, error } = await supabase.from('items').select('id, description').order('id').limit(200);
+        if (!error) {
+          itemOptions = (data || []).map((r: any) => ({ id: Number(r.id), label: r.description || `Item ${r.id}` }));
+        }
+      }
+    } catch (inner) {
+      console.error('Failed to load items for tag creation', inner);
+    }
   } catch (e: any) {
     return (
       <p className="text-sm text-red-600">Failed to load tags: {e.message}</p>
@@ -45,7 +67,22 @@ export default async function ItemTagsPage({
       cell: (r) => <span className="font-mono text-xs">{r.id}</span>,
     },
     { id: "name", header: "Name", cell: (r) => <span>{r.name}</span> },
-    // Actions removed (tags are item-scoped and managed via item forms)
+    {
+      id: "actions",
+      header: <></>,
+      widthClass: "w-32",
+      alignRight: true,
+      cell: (r) => (
+        <div className="flex justify-end">
+          <EditItemTagDialog
+            id={r.id as number}
+            initialName={r.name}
+            action={updateItemTag}
+            deleteAction={deleteItemTag}
+          />
+        </div>
+      ),
+    },
   ];
 
   const makePageHref = createPageHrefBuilder("/item-tags", {
@@ -64,7 +101,9 @@ export default async function ItemTagsPage({
       makePageHref={makePageHref}
       columns={columns}
       emptyMessage="No tags found"
-      controlsStart={null}
+  controlsStart={<AddItemTagDialog action={createItemTag} items={itemOptions} />}
     />
   );
 }
+
+// Removed inline wrapper: passing server actions directly to client dialog component.
