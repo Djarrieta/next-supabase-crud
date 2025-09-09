@@ -1,5 +1,5 @@
-import AddItemDialog from "@/components/add-item-dialog";
-import EditItemDialog from "@/components/edit-item-dialog";
+import AddItemDialog from "./add-item-dialog";
+import EditItemDialog from "./edit-item-dialog";
 import StatusFilter from "@/components/status-filter";
 import TableTemplate, {
   TableTemplateColumn,
