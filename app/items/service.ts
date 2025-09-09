@@ -16,13 +16,21 @@ class DrizzleItemRepository implements ItemRepository {
   async create(description: string, sellPrice: number, unique: boolean, tagNames: string[]) {
     const db = getDb();
     await db.transaction(async (tx) => {
-      const [created] = await tx.insert(items).values({ description, sellPrice: sellPrice.toFixed(2), unique }).returning({ id: items.id });
-      if (created?.id && tagNames.length) {
-        const distinct = Array.from(new Set(tagNames.map(n => n.trim()).filter(Boolean)));
-        if (distinct.length) {
-          await tx.insert(itemTags).values(distinct.map(n => ({ itemId: created.id as number, name: n })));
+      // Resolve tag names -> ids (create missing)
+      const distinct = Array.from(new Set(tagNames.map(n => n.trim()).filter(Boolean)));
+      let tagIds: number[] = [];
+      if (distinct.length) {
+        // Fetch existing
+        const existing = await tx.select().from(itemTags).where(inArray(itemTags.name, distinct));
+        const existingMap = new Map<string, number>(existing.map(r => [r.name || '', r.id as number]));
+        const toCreate = distinct.filter(n => !existingMap.has(n));
+        if (toCreate.length) {
+          const inserted = await tx.insert(itemTags).values(toCreate.map(n => ({ name: n }))).returning({ id: itemTags.id, name: itemTags.name });
+          inserted.forEach(r => existingMap.set(r.name || '', r.id as number));
         }
+        tagIds = distinct.map(n => existingMap.get(n)!).filter(Boolean);
       }
+      await tx.insert(items).values({ description, sellPrice: sellPrice.toFixed(2), unique, tags: tagIds as any }).returning({ id: items.id });
     });
   }
   async update(id: number, update: ItemUpdate) {
@@ -34,12 +42,22 @@ class DrizzleItemRepository implements ItemRepository {
       if (update.status !== undefined) updateData.status = update.status;
       if (update.sellPrice !== undefined) updateData.sellPrice = update.sellPrice.toFixed(2);
       if (update.unique !== undefined) updateData.unique = update.unique;
-      if (Object.keys(updateData).length) await tx.update(items).set(updateData).where(eq(items.id, id));
       if (update.tagNames) {
-        await tx.delete(itemTags).where(eq(itemTags.itemId, id));
         const distinct = Array.from(new Set(update.tagNames.map(n => n.trim()).filter(Boolean)));
-        if (distinct.length) await tx.insert(itemTags).values(distinct.map(n => ({ itemId: id, name: n })));
+        if (distinct.length) {
+          const existing = await tx.select().from(itemTags).where(inArray(itemTags.name, distinct));
+          const existingMap = new Map<string, number>(existing.map(r => [r.name || '', r.id as number]));
+            const toCreate = distinct.filter(n => !existingMap.has(n));
+            if (toCreate.length) {
+              const inserted = await tx.insert(itemTags).values(toCreate.map(n => ({ name: n }))).returning({ id: itemTags.id, name: itemTags.name });
+              inserted.forEach(r => existingMap.set(r.name || '', r.id as number));
+            }
+          updateData.tags = distinct.map(n => existingMap.get(n)!).filter(Boolean) as any;
+        } else {
+          updateData.tags = [] as any;
+        }
       }
+      if (Object.keys(updateData).length) await tx.update(items).set(updateData).where(eq(items.id, id));
     });
   }
   async list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
@@ -52,14 +70,12 @@ class DrizzleItemRepository implements ItemRepository {
     const baseRows = await (statusFilter === 'all'
       ? db.select().from(items).orderBy(items.id).limit(pageSize).offset(offset)
       : db.select().from(items).where(eq(items.status, statusFilter)).orderBy(items.id).limit(pageSize).offset(offset));
-    const ids = baseRows.map(r => r.id as number);
-    const tagMap: Record<number, { id: number; name: string }[]> = {};
-    if (ids.length) {
-      const tagRows = await db.select().from(itemTags).where(inArray(itemTags.itemId, ids));
-      for (const tr of tagRows) {
-        const iid = tr.itemId as number;
-        (tagMap[iid] ||= []).push({ id: tr.id as number, name: tr.name || '' });
-      }
+    // Collect all tag ids referenced
+    const allTagIds = Array.from(new Set(baseRows.flatMap(r => (r as any).tags as number[] || [])));
+    const tagMapById = new Map<number, { id: number; name: string }>();
+    if (allTagIds.length) {
+      const tagRows = await db.select().from(itemTags).where(inArray(itemTags.id, allTagIds));
+      tagRows.forEach(tr => { tagMapById.set(tr.id as number, { id: tr.id as number, name: tr.name || '' }); });
     }
     const mapped = baseRows.map(r => ({
       id: r.id as number,
@@ -67,7 +83,7 @@ class DrizzleItemRepository implements ItemRepository {
       status: ((r as any).status || 'active') as ItemStatus,
       sellPrice: (r as any).sellPrice ? String((r as any).sellPrice) : '0',
       unique: Boolean((r as any).unique),
-      tags: tagMap[Number(r.id)] || []
+      tags: ((r as any).tags || []).map((tid: number) => tagMapById.get(tid)).filter(Boolean)
     })) as unknown as Item[];
     return { rows: mapped, total: Number(total) || 0, page, pageSize };
   }
@@ -76,17 +92,24 @@ class DrizzleItemRepository implements ItemRepository {
 class SupabaseItemRepository implements ItemRepository {
   async create(description: string, sellPrice: number, unique: boolean, tagNames: string[]) {
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase.from('items').insert({ description, sell_price: sellPrice, unique }).select('id').single();
-    if (error) throw error;
-    const itemId = (data as any)?.id;
-    if (itemId && tagNames.length) {
-      const distinct = Array.from(new Set(tagNames.map(n => n.trim()).filter(Boolean)));
-      if (distinct.length) {
-        const payload = distinct.map(n => ({ item_id: itemId, name: n }));
-        const { error: tagErr } = await supabase.from('item_tags').insert(payload);
-        if (tagErr) throw tagErr;
+    // Ensure tags exist, get ids
+    const distinct = Array.from(new Set(tagNames.map(n => n.trim()).filter(Boolean)));
+    let tagIds: number[] = [];
+    if (distinct.length) {
+      // fetch existing
+      const { data: existing, error: existingErr } = await supabase.from('item_tags').select('id, name').in('name', distinct);
+      if (existingErr) throw existingErr;
+      const map = new Map<string, number>((existing || []).map(r => [(r as any).name, (r as any).id]));
+      const toCreate = distinct.filter(n => !map.has(n));
+      if (toCreate.length) {
+        const { data: inserted, error: insErr } = await supabase.from('item_tags').insert(toCreate.map(n => ({ name: n }))).select('id, name');
+        if (insErr) throw insErr;
+        (inserted || []).forEach(r => map.set((r as any).name, (r as any).id));
       }
+      tagIds = distinct.map(n => map.get(n)!).filter(Boolean);
     }
+    const { error } = await supabase.from('items').insert({ description, sell_price: sellPrice, unique, tags: tagIds }).single();
+    if (error) throw error;
   }
   async update(id: number, update: ItemUpdate) {
     if (!id || Number.isNaN(id)) throw new Error('Invalid item id');
@@ -96,18 +119,26 @@ class SupabaseItemRepository implements ItemRepository {
     if (update.status !== undefined) updateData.status = update.status;
     if (update.sellPrice !== undefined) updateData.sell_price = update.sellPrice;
     if (update.unique !== undefined) updateData.unique = update.unique;
+    if (update.tagNames) {
+      const distinct = Array.from(new Set(update.tagNames.map(n => n.trim()).filter(Boolean)));
+      let tagIds: number[] = [];
+      if (distinct.length) {
+        const { data: existing, error: existErr } = await supabase.from('item_tags').select('id, name').in('name', distinct);
+        if (existErr) throw existErr;
+        const map = new Map<string, number>((existing || []).map(r => [(r as any).name, (r as any).id]));
+        const toCreate = distinct.filter(n => !map.has(n));
+        if (toCreate.length) {
+          const { data: inserted, error: insErr } = await supabase.from('item_tags').insert(toCreate.map(n => ({ name: n }))).select('id, name');
+          if (insErr) throw insErr;
+          (inserted || []).forEach(r => map.set((r as any).name, (r as any).id));
+        }
+        tagIds = distinct.map(n => map.get(n)!).filter(Boolean);
+      }
+      updateData.tags = tagIds;
+    }
     if (Object.keys(updateData).length) {
       const { error } = await supabase.from('items').update(updateData).eq('id', id).single();
       if (error) throw error;
-    }
-    if (update.tagNames) {
-      const { error: delErr } = await supabase.from('item_tags').delete().eq('item_id', id);
-      if (delErr) throw delErr;
-      const distinct = Array.from(new Set(update.tagNames.map(n => n.trim()).filter(Boolean)));
-      if (distinct.length) {
-        const { error: insErr } = await supabase.from('item_tags').insert(distinct.map(n => ({ item_id: id, name: n })));
-        if (insErr) throw insErr;
-      }
     }
   }
   async list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
@@ -116,22 +147,19 @@ class SupabaseItemRepository implements ItemRepository {
     const to = from + pageSize - 1;
     let query = supabase
       .from('items')
-      .select('id, description, status, sell_price, unique', { count: 'exact' })
+      .select('id, description, status, sell_price, unique, tags', { count: 'exact' })
       .order('id')
       .range(from, to);
     if (statusFilter !== 'all') query = query.eq('status', statusFilter);
     const { data, error, count } = await query;
     if (error) throw error;
     const itemsData = (data || []);
-    const ids = itemsData.map(r => (r as any).id as number);
-    const tagMap: Record<number, { id: number; name: string }[]> = {};
-    if (ids.length) {
-      const { data: tagRows, error: tagErr } = await supabase.from('item_tags').select('id, name, item_id').in('item_id', ids);
+    const allTagIds = Array.from(new Set(itemsData.flatMap(r => ((r as any).tags as number[]) || [])));
+    const tagMapById = new Map<number, { id: number; name: string }>();
+    if (allTagIds.length) {
+      const { data: tagRows, error: tagErr } = await supabase.from('item_tags').select('id, name').in('id', allTagIds);
       if (tagErr) throw tagErr;
-      for (const tr of tagRows || []) {
-        const iid = (tr as any).item_id as number;
-        (tagMap[iid] ||= []).push({ id: (tr as any).id as number, name: (tr as any).name as string });
-      }
+      (tagRows || []).forEach(tr => tagMapById.set((tr as any).id, { id: (tr as any).id, name: (tr as any).name }));
     }
     const mapped = itemsData.map(r => ({
       id: (r as any).id as number,
@@ -139,7 +167,7 @@ class SupabaseItemRepository implements ItemRepository {
       status: ((r as any).status || 'active') as ItemStatus,
       sellPrice: (r as any).sell_price != null ? String((r as any).sell_price) : '0',
       unique: Boolean((r as any).unique),
-      tags: tagMap[(r as any).id] || []
+      tags: ((r as any).tags || []).map((tid: number) => tagMapById.get(tid)).filter(Boolean)
     })) as unknown as Item[];
     return { rows: mapped, total: count || 0, page, pageSize };
   }

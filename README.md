@@ -79,3 +79,14 @@ bun run drizzle:studio
 ```
 
 `drizzle/` output is gitignored by default; remove the entry from `.gitignore` if you wish to commit migration snapshots.
+
+### Tag Model Refactor (Catalog + Array)
+
+The tag system has been refactored from per-item tag rows to a global catalog:
+
+- `item_tags` now only contains `id` and `name` (unique by name).
+- `items` has a new `tags bigint[]` column storing tag ids.
+- Creating/updating an item resolves tag names to ids (creating missing catalog entries) and persists the array.
+- UI for managing tags is now independent of items (global list).
+
+Migration `0001_tag_catalog_refactor.sql` reshapes existing data. Previous per-item associations are not automatically backfilled into the new array (since the old linking rows are collapsed by name). Reassign tags to items as needed after migration.

@@ -11,17 +11,10 @@ import {
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import Selector from "@/components/ui/selector";
+type Props = { action: (formData: FormData) => Promise<void> };
 
-type ItemOption = { id: number; label: string };
-type Props = {
-  action: (formData: FormData) => Promise<void>;
-  items: ItemOption[];
-};
-
-export default function AddItemTagDialog({ action, items }: Props) {
+export default function AddItemTagDialog({ action }: Props) {
   const [open, setOpen] = useState(false);
-  const [itemId, setItemId] = useState(items[0]?.id ? String(items[0].id) : "");
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -34,18 +27,11 @@ export default function AddItemTagDialog({ action, items }: Props) {
         </DialogHeader>
         <Form
           action={async (fd) => {
-            fd.append("itemId", itemId);
             await action(fd);
             setOpen(false);
           }}
         >
           <div className="space-y-4">
-            <Selector
-              label="Item"
-              value={itemId}
-              onValueChange={(v) => setItemId(v)}
-              options={items.map((i) => ({ value: i.id, label: i.label }))}
-            />
             <Form.TextInput
               name="name"
               label="Name"

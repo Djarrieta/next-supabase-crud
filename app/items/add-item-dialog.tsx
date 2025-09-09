@@ -12,7 +12,7 @@ import {
 import { Form } from "@/components/ui/form";
 import Link from "next/link";
 import { useState } from "react";
-// For one-to-many model tags are ad-hoc per item; we allow user to pick from existing names (optional) but carry names not ids.
+// Tag names selected are resolved to tag ids (catalog) server-side.
 type TagOption = { name: string };
 type Props = {
   action: (formData: FormData) => Promise<void>;

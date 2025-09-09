@@ -3,8 +3,8 @@
 // Forbidden imports: react, next/* (except server utilities), UI components.
 
 import { getSupabaseClient } from '@/lib/supabaseClient';
-import { getDb, itemTags } from '@/lib/db/client';
-import { eq, sql } from 'drizzle-orm';
+import { getDb, itemTags, items } from '@/lib/db/client';
+import { eq, sql, inArray } from 'drizzle-orm';
 import type { ItemTagRow } from './schema';
 
 export interface PaginatedResult<T> { rows: T[]; total: number; page: number; pageSize: number }
@@ -12,7 +12,9 @@ export interface ItemTagsRepository {
   list(page: number, pageSize: number): Promise<PaginatedResult<ItemTagRow>>;
   updateName(id: number, name: string): Promise<void>;
   delete(id: number): Promise<void>;
-  create(itemId: number, name: string): Promise<void>;
+  create(name: string): Promise<void>;
+  /** Return the full catalog of tags (id + name) without pagination. */
+  listAll(): Promise<ItemTagRow[]>;
 }
 
 class DrizzleItemTagsRepository implements ItemTagsRepository {
@@ -23,6 +25,11 @@ class DrizzleItemTagsRepository implements ItemTagsRepository {
     const rows = await db.select().from(itemTags).orderBy(itemTags.id).limit(pageSize).offset(offset);
     return { rows: rows as ItemTagRow[], total: Number(total) || 0, page, pageSize };
   }
+  async listAll(): Promise<ItemTagRow[]> {
+    const db = getDb();
+    const rows = await db.select().from(itemTags).orderBy(itemTags.name);
+    return rows as ItemTagRow[];
+  }
   async updateName(id: number, name: string): Promise<void> {
     const db = getDb();
     await db.update(itemTags).set({ name }).where(eq(itemTags.id, id));
@@ -31,9 +38,9 @@ class DrizzleItemTagsRepository implements ItemTagsRepository {
     const db = getDb();
     await db.delete(itemTags).where(eq(itemTags.id, id));
   }
-  async create(itemId: number, name: string): Promise<void> {
+  async create(name: string): Promise<void> {
     const db = getDb();
-    await db.insert(itemTags).values({ itemId, name });
+    await db.insert(itemTags).values({ name });
   }
 }
 
@@ -50,6 +57,12 @@ class SupabaseItemTagsRepository implements ItemTagsRepository {
     if (error) throw error;
     return { rows: (data || []) as ItemTagRow[], total: count || 0, page, pageSize };
   }
+  async listAll(): Promise<ItemTagRow[]> {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.from('item_tags').select('id, name').order('name');
+    if (error) throw error;
+    return (data || []) as ItemTagRow[];
+  }
   async updateName(id: number, name: string): Promise<void> {
     const supabase = getSupabaseClient();
     const { error } = await supabase.from('item_tags').update({ name }).eq('id', id).single();
@@ -60,9 +73,9 @@ class SupabaseItemTagsRepository implements ItemTagsRepository {
     const { error } = await supabase.from('item_tags').delete().eq('id', id).single();
     if (error) throw error;
   }
-  async create(itemId: number, name: string): Promise<void> {
+  async create(name: string): Promise<void> {
     const supabase = getSupabaseClient();
-    const { error } = await supabase.from('item_tags').insert({ item_id: itemId, name }).single();
+    const { error } = await supabase.from('item_tags').insert({ name }).single();
     if (error) throw error;
   }
 }
@@ -73,6 +86,9 @@ export class ItemTagsService {
     const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
     const safePageSize = Number.isFinite(pageSize) && pageSize > 0 && pageSize <= 100 ? Math.floor(pageSize) : 10;
     return this.repo.list(safePage, safePageSize);
+  }
+  async listAll() {
+    return this.repo.listAll();
   }
   async updateFromForm(formData: FormData) {
     const id = this.extractId(formData);
@@ -85,13 +101,9 @@ export class ItemTagsService {
     await this.repo.delete(id);
   }
   async createFromForm(formData: FormData) {
-    const rawItemId = formData.get('itemId');
-    if (!rawItemId) throw new Error('Missing item id');
-    const itemId = Number(rawItemId);
-    if (!Number.isFinite(itemId) || itemId <= 0) throw new Error('Invalid item id');
     const rawName = String(formData.get('name') || '').trim();
     const name = rawName || 'unnamed';
-    await this.repo.create(itemId, name);
+    await this.repo.create(name);
   }
   private extractId(formData: FormData): number {
     const raw = formData.get('id');

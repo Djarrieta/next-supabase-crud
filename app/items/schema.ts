@@ -20,8 +20,13 @@ export const items = pgTable('items', {
   sellPrice: numeric('sell_price', { precision: 10, scale: 2 }).notNull().default('0'),
   // Whether the item is unique (boolean flag). Defaults to false
   unique: boolean('unique').notNull().default(false),
+  // Array of tag ids (references item_tags.id). Maintained at service layer.
+  tags: bigint('tags', { mode: 'number' }).array().notNull().default(sql`'{}'::bigint[]`),
 });
 
 export type ItemStatusFilter = ItemStatus | 'all';
-export type Item = typeof items.$inferSelect & { tags?: { id: number; name: string }[] };
+// Raw DB row (tags is bigint[])
+export type ItemRow = typeof items.$inferSelect;
+// Enriched domain model (tags replaced with objects)
+export type Item = Omit<ItemRow, 'tags'> & { tags?: { id: number; name: string }[] };
 export type NewItem = typeof items.$inferInsert;

@@ -1,10 +1,14 @@
 "use server";
-// Server actions for itemTags
+// Server actions for itemTags (global catalog)
 import { getItemTagsService } from '@/app/items/tags/service';
 import { revalidatePath } from 'next/cache';
 
 export async function listItemTags(page: number, pageSize: number) {
   try { return await getItemTagsService().list(page, pageSize); } catch (e) { console.error('listItemTags failed:', e); throw e; }
+}
+
+export async function listAllItemTags() {
+  try { return await getItemTagsService().listAll(); } catch (e) { console.error('listAllItemTags failed:', e); throw e; }
 }
 
 export async function updateItemTag(formData: FormData) {

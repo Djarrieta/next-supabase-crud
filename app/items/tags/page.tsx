@@ -33,48 +33,13 @@ export default async function ItemTagsPage({
     defaultPageSize: ITEM_TAGS_MAX_PAGE_SIZE,
     maxPageSize: ITEM_TAGS_MAX_PAGE_SIZE,
   }));
-  let itemOptions: { id: number; label: string }[] = [];
   try {
     const result = await listItemTags(page, pageSize);
     rows = result?.rows as ItemTagRow[];
     total = result?.total || 0;
     page = result?.page || page;
     pageSize = result?.pageSize || pageSize;
-    // Fetch minimal items list for selector (limit to 200 to keep payload small)
-    try {
-      const useDrizzle = Boolean(
-        process.env.DATABASE_URL || process.env.DRIZZLE_DATABASE_URL
-      );
-      if (useDrizzle) {
-        const { getDb, items } = await import("@/lib/db/client");
-        const db = getDb();
-        const itemRows: any[] = await db
-          .select()
-          .from(items)
-          .orderBy(items.id)
-          .limit(200);
-        itemOptions = itemRows.map((r) => ({
-          id: Number(r.id),
-          label: r.description || `Item ${r.id}`,
-        }));
-      } else {
-        const { getSupabaseClient } = await import("@/lib/supabaseClient");
-        const supabase = getSupabaseClient();
-        const { data, error } = await supabase
-          .from("items")
-          .select("id, description")
-          .order("id")
-          .limit(200);
-        if (!error) {
-          itemOptions = (data || []).map((r: any) => ({
-            id: Number(r.id),
-            label: r.description || `Item ${r.id}`,
-          }));
-        }
-      }
-    } catch (inner) {
-      console.error("Failed to load items for tag creation", inner);
-    }
+    // No per-item creation now (global tag catalog)
   } catch (e: any) {
     return (
       <p className="text-sm text-red-600">Failed to load tags: {e.message}</p>
@@ -128,9 +93,7 @@ export default async function ItemTagsPage({
       makePageHref={makePageHref}
       columns={columns}
       emptyMessage="No tags found"
-      controlsStart={
-        <AddItemTagDialog action={createItemTag} items={itemOptions} />
-      }
+      controlsStart={<AddItemTagDialog action={createItemTag} />}
     />
   );
 }

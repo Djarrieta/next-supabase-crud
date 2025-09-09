@@ -6,6 +6,7 @@ import TableTemplate, {
 } from "@/components/table-template";
 import { Tag, TagVariant } from "@/components/ui/tag";
 import { createItem, deleteItem, listItems, updateItem } from "./actions";
+import { listAllItemTags } from "./tags/actions";
 import { MAX_PAGE_SIZE } from "./constants";
 import {
   parsePagination,
@@ -21,6 +22,7 @@ export default async function ItemsPage({
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
   let itemsData: Item[] = [];
+  // Full catalog of tags for dialogs (Add/Edit)
   let allTags: { name: string }[] = [];
   let total = 0;
   let page = 1;
@@ -41,22 +43,18 @@ export default async function ItemsPage({
     maxPageSize: MAX_PAGE_SIZE,
   }));
   try {
-    const result = await listItems(statusFilter, page, pageSize);
-    // Derive distinct tag names from current page only (could be expanded with separate query if needed)
-    const names = new Set<string>();
-    result.rows.forEach((r) => {
-      const ts: any[] = (r as any).tags || (r as any).tagObjects || [];
-      ts.forEach((t) => {
-        if (t?.name) names.add(t.name);
-      });
-    });
-    allTags = Array.from(names)
-      .sort()
-      .map((n) => ({ name: n }));
-    itemsData = result.rows as Item[];
-    total = result.total;
-    page = result.page;
-    pageSize = result.pageSize;
+    const [itemsResult, tagCatalog] = await Promise.all([
+      listItems(statusFilter, page, pageSize),
+      // fetch entire tag catalog (no pagination)
+      listAllItemTags(),
+    ]);
+    itemsData = itemsResult.rows as Item[];
+    total = itemsResult.total;
+    page = itemsResult.page;
+    pageSize = itemsResult.pageSize;
+    allTags = tagCatalog
+      .map((t: any) => ({ name: t.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   } catch (e: any) {
     return (
       <p className="text-sm text-red-600">Failed to load items: {e.message}</p>
