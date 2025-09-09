@@ -3,7 +3,10 @@ import TableTemplate, {
 } from "@/components/table-template";
 import { listItemTags } from "./actions";
 import { ITEM_TAGS_MAX_PAGE_SIZE } from "./constants";
-import { parsePagination, createPageHrefBuilder } from "@/components/pagination-server";
+import {
+  parsePagination,
+  createPageHrefBuilder,
+} from "@/components/pagination-server";
 import type { ItemTagRow } from "./domain/schema";
 
 export const revalidate = 0;

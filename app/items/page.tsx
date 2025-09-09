@@ -7,9 +7,11 @@ import TableTemplate, {
 import { Tag, TagVariant } from "@/components/ui/tag";
 import { createItem, deleteItem, listItems, updateItem } from "./actions";
 import { MAX_PAGE_SIZE } from "./constants";
-import { parsePagination, createPageHrefBuilder } from "@/components/pagination-server";
+import {
+  parsePagination,
+  createPageHrefBuilder,
+} from "@/components/pagination-server";
 import { Item, ItemStatusFilter } from "./domain/schema";
-// In one-to-many model, tags are per item; we still gather a deduplicated list for dialogs for convenience.
 
 export const revalidate = 0; // always fresh
 
