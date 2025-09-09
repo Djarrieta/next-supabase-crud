@@ -80,6 +80,24 @@ bun run drizzle:studio
 
 `drizzle/` output is gitignored by default; remove the entry from `.gitignore` if you wish to commit migration snapshots.
 
+### Seeding Data (Development)
+
+There's a simple idempotent seed script that inserts a baseline tag catalog and a few demo items (only if fewer than 5 items exist).
+
+Run it after running migrations:
+
+```bash
+bun run db:seed
+```
+
+What it does:
+
+- Ensures tag names: hardware, software, service, internal, external
+- Inserts 4 sample items if the table is nearly empty
+- Skips inserting items if you already have 5+ rows
+
+Feel free to edit `scripts/seed.ts` to adjust sample data. Re-running won't duplicate tags or exceed the initial sample item set (it only seeds when item count < 5).
+
 ### Tag Model Refactor (Catalog + Array)
 
 The tag system has been refactored from per-item tag rows to a global catalog:
