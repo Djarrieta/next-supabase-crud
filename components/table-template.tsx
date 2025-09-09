@@ -45,6 +45,8 @@ export interface TableTemplateProps<T> {
   controlsEnd?: React.ReactNode; // right side (e.g. filters)
   /** Extra content under the table */
   footer?: React.ReactNode;
+  /** Optional breadcrumb (rendered above the title). Accepts any React node (e.g. a list of links). */
+  breadcrumb?: React.ReactNode;
   /** Additional class names for root */
   className?: string;
 }
@@ -69,6 +71,7 @@ export function TableTemplate<T extends { id: string | number }>(
     controlsStart,
     controlsEnd,
     footer,
+    breadcrumb,
     className,
   } = props;
 
@@ -119,6 +122,9 @@ export function TableTemplate<T extends { id: string | number }>(
 
   return (
     <div className={clsx("space-y-6", className)}>
+      {breadcrumb && (
+        <div className="text-sm text-muted-foreground">{breadcrumb}</div>
+      )}
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
         {description && (

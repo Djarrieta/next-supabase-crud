@@ -1,6 +1,7 @@
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
+import Breadcrumb from "@/components/ui/breadcrumb";
 import {
   listItemTags,
   updateItemTag,
@@ -115,6 +116,11 @@ export default async function ItemTagsPage({
     <TableTemplate
       title="Item Tags"
       description="Listing all item tags."
+      breadcrumb={
+        <Breadcrumb
+          items={[{ label: "Items", href: "/items" }, { label: "Tags" }]}
+        />
+      }
       rows={rows}
       totalRows={total}
       page={page}
