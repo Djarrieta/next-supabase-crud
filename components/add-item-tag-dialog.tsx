@@ -11,24 +11,20 @@ import {
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-// For one-to-many model tags are ad-hoc per item; we allow user to pick from existing names (optional) but carry names not ids.
-type TagOption = { name: string };
-type Props = {
-  action: (formData: FormData) => Promise<void>;
-  availableTags: TagOption[];
-};
 
-export default function AddItemDialog({ action, availableTags }: Props) {
+type Props = { action: (formData: FormData) => Promise<void> };
+
+export default function AddItemTagDialog({ action }: Props) {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="primary">New Item</Button>
+        <Button variant="primary">New Tag</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New Item</DialogTitle>
-          <DialogDescription>Add a new record to the list.</DialogDescription>
+          <DialogTitle>New Tag</DialogTitle>
+          <DialogDescription>Add a new tag.</DialogDescription>
         </DialogHeader>
         <Form
           action={async (fd) => {
@@ -37,26 +33,11 @@ export default function AddItemDialog({ action, availableTags }: Props) {
           }}
         >
           <Form.TextInput
-            name="description"
-            label="Description"
-            placeholder="New item description"
-            maxLength={500}
+            name="name"
+            label="Name"
+            placeholder="Tag name"
+            maxLength={200}
             autoFocus
-          />
-          <Form.NumberInput
-            name="sellPrice"
-            label="Sell Price"
-            step="0.01"
-            min={0}
-            defaultValue={0}
-          />
-          <Form.CheckboxInput name="unique" label="Unique" />
-          <Form.Tags
-            name="tags"
-            options={availableTags.map((t) => ({
-              value: t.name,
-              label: t.name,
-            }))}
           />
           <div className="flex justify-end gap-2 pt-2">
             <DialogClose asChild>

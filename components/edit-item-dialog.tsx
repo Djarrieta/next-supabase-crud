@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import type { Item, ItemStatus, ItemTag } from "@/lib/db/schema";
-import { ITEM_STATUS_VALUES, ITEM_TAG_VALUES } from "@/lib/db/schema";
+import type { Item, ItemStatus } from "@/lib/db/schema";
+import { ITEM_STATUS_VALUES } from "@/lib/db/schema";
 import { useState } from "react";
 
 type InitialValues = {
@@ -19,14 +19,16 @@ type InitialValues = {
   status?: Item["status"];
   sellPrice?: number;
   unique?: Item["unique"];
-  tags?: ItemTag[];
+  tagNames?: string[]; // selected tag names
 };
 
+type TagOption = { name: string };
 type Props = {
   action: (formData: FormData) => Promise<void>;
   deleteAction?: (formData: FormData) => Promise<void>;
   id: number;
   initialValues: InitialValues;
+  availableTags: TagOption[];
 };
 
 const EDITABLE_STATUS_OPTIONS = ITEM_STATUS_VALUES.filter(
@@ -38,20 +40,21 @@ export default function EditItemDialog({
   deleteAction,
   id,
   initialValues,
+  availableTags,
 }: Props) {
   const {
     description: initialDescription,
     status: initialStatus = "active",
     sellPrice: initialSellPrice = 0,
     unique: initialUnique = false,
-    tags: initialTags = [],
+    tagNames: initialTagNames = [],
   } = initialValues;
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialDescription);
   const [status, setStatus] = useState<ItemStatus>(initialStatus);
   const [sellPrice, setSellPrice] = useState<number>(initialSellPrice);
   const [unique, setUnique] = useState<boolean>(initialUnique);
-  const [tags, setTags] = useState<ItemTag[]>(initialTags);
+  const [tagNames, setTagNames] = useState<string[]>(initialTagNames);
   return (
     <Dialog
       open={open}
@@ -82,7 +85,6 @@ export default function EditItemDialog({
             fd.set("sellPrice", String(sellPrice));
             fd.set("unique", unique ? "true" : "false");
             fd.append("_tags_present", "1");
-            // Rely on native checkbox inputs for tag values; no manual append to avoid duplicates
             await action(fd);
             setOpen(false);
           }}
@@ -116,9 +118,12 @@ export default function EditItemDialog({
           />
           <Form.Tags
             name="tags"
-            options={ITEM_TAG_VALUES}
-            value={tags}
-            onValueChange={(vals) => setTags(vals as typeof tags)}
+            options={availableTags.map((t) => ({
+              value: t.name,
+              label: t.name,
+            }))}
+            value={tagNames}
+            onValueChange={(vals) => setTagNames(vals as string[])}
           />
           <Form.Selector
             id={`status-${id}`}

@@ -8,6 +8,7 @@ import { Tag, TagVariant } from "@/components/ui/tag";
 import { createItem, deleteItem, listItems, updateItem } from "./actions";
 import { MAX_PAGE_SIZE } from "./constants";
 import { Item, ItemStatusFilter } from "./domain/schema";
+// In one-to-many model, tags are per item; we still gather a deduplicated list for dialogs for convenience.
 
 export const revalidate = 0; // always fresh
 
@@ -17,6 +18,7 @@ export default async function ItemsPage({
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
   let itemsData: Item[] = [];
+  let allTags: { name: string }[] = [];
   let total = 0;
   let page = 1;
   let pageSize = MAX_PAGE_SIZE;
@@ -45,6 +47,17 @@ export default async function ItemsPage({
       : MAX_PAGE_SIZE;
   try {
     const result = await listItems(statusFilter, page, pageSize);
+    // Derive distinct tag names from current page only (could be expanded with separate query if needed)
+    const names = new Set<string>();
+    result.rows.forEach((r) => {
+      const ts: any[] = (r as any).tags || (r as any).tagObjects || [];
+      ts.forEach((t) => {
+        if (t?.name) names.add(t.name);
+      });
+    });
+    allTags = Array.from(names)
+      .sort()
+      .map((n) => ({ name: n }));
     itemsData = result.rows as Item[];
     total = result.total;
     page = result.page;
@@ -80,9 +93,9 @@ export default async function ItemsPage({
               return <Tag variant={variant}>{row.status}</Tag>;
             })()}
             {Array.isArray((row as any).tags) &&
-              (Array.from(new Set((row as any).tags)) as string[]).map((t) => (
-                <Tag key={t} variant="default">
-                  {t}
+              ((row as any).tags as { id: number; name: string }[]).map((t) => (
+                <Tag key={t.id} variant="default">
+                  {t.name}
                 </Tag>
               ))}
           </div>
@@ -102,7 +115,9 @@ export default async function ItemsPage({
             status: row.status,
             sellPrice: Number(row.sellPrice),
             unique: row.unique,
+            tagNames: ((row as any).tags || []).map((t: any) => t.name),
           }}
+          availableTags={allTags}
           action={updateItem}
           deleteAction={deleteItem}
         />
@@ -130,7 +145,9 @@ export default async function ItemsPage({
       makePageHref={makePageHref}
       columns={columns}
       emptyMessage="No items found"
-      controlsStart={<AddItemDialog action={createItem} />}
+      controlsStart={
+        <AddItemDialog action={createItem} availableTags={allTags} />
+      }
       controlsEnd={<StatusFilter current={statusFilter} />}
     />
   );
