@@ -7,7 +7,7 @@ import {
   parsePagination,
   createPageHrefBuilder,
 } from "@/components/pagination-server";
-import type { ItemTagRow } from "./domain/schema";
+import type { ItemTagRow } from "./schema";
 
 export const revalidate = 0;
 

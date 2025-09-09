@@ -4,7 +4,7 @@
 
 "use server";
 import { revalidatePath } from "next/cache";
-import { getItemsService } from "@/app/items/domain/service";
+import { getItemsService } from "@/app/items/service";
 import type { ItemStatus } from '@/lib/db/schema';
 
 export async function createItem(formData: FormData) {

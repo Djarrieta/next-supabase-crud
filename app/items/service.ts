@@ -2,7 +2,7 @@
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getDb, Item, items, ItemStatus, ITEM_STATUS_VALUES, itemTags } from '@/lib/db/client';
 import { eq, sql, inArray } from 'drizzle-orm';
-import { ItemStatusFilter } from '@/app/items/domain/schema';
+import { ItemStatusFilter } from '@/app/items/schema';
 
 export interface ItemUpdate { description?: string; status?: ItemStatus; sellPrice?: number; unique?: boolean; tagNames?: string[] }
 export interface PaginatedResult<T> { rows: T[]; total: number; page: number; pageSize: number }

@@ -11,7 +11,7 @@ import {
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import type { ItemTagRow } from "@/app/item-tags/domain/schema";
+import type { ItemTagRow } from "@/app/items/tags/schema";
 
 type Props = {
   id: number;

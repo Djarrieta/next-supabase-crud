@@ -11,7 +11,7 @@ import {
   parsePagination,
   createPageHrefBuilder,
 } from "@/components/pagination-server";
-import { Item, ItemStatusFilter } from "./domain/schema";
+import { Item, ItemStatusFilter } from "./schema";
 
 export const revalidate = 0; // always fresh
 

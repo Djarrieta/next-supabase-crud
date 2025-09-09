@@ -2,7 +2,7 @@
 // Only Drizzle pg-core helpers & pure utilities. No React/Next/UI.
 
 import { pgTable, bigint, text } from 'drizzle-orm/pg-core';
-import { items } from '@/app/items/domain/schema';
+import { items } from '@/app/items/schema';
 
 export const itemTags = pgTable('item_tags', {
   id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
