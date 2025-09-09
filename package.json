@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start -p 4000",
     "lint": "next lint",
+    "db:update": "rm -rf drizzle && bun drizzle:generate && bun drizzle:push",
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:push": "drizzle-kit push",
     "drizzle:studio": "drizzle-kit studio"
+    
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

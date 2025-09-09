@@ -22,11 +22,14 @@ export const items = pgTable('items', {
   unique: boolean('unique').notNull().default(false),
   // Array of tag ids (references item_tags.id). Maintained at service layer.
   tags: bigint('tags', { mode: 'number' }).array().notNull().default(sql`'{}'::bigint[]`),
+  // Array of component item ids (self-referencing items.id). Maintained + validated at service layer.
+  components: bigint('components', { mode: 'number' }).array().notNull().default(sql`'{}'::bigint[]`),
 });
 
 export type ItemStatusFilter = ItemStatus | 'all';
 // Raw DB row (tags is bigint[])
 export type ItemRow = typeof items.$inferSelect;
 // Enriched domain model (tags replaced with objects)
-export type Item = Omit<ItemRow, 'tags'> & { tags?: { id: number; name: string }[] };
+// Domain Item: enrich tags; keep components as raw id[] for now (could be expanded later)
+export type Item = Omit<ItemRow, 'tags' | 'components'> & { tags?: { id: number; name: string }[], components: number[] };
 export type NewItem = typeof items.$inferInsert;

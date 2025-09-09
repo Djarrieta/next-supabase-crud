@@ -61,6 +61,10 @@ export default async function ItemsPage({
       <p className="text-sm text-red-600">Failed to load items: {e.message}</p>
     );
   }
+  const availableComponents = itemsData.map((i) => ({
+    id: i.id,
+    description: i.description,
+  }));
   // Columns definition using generic table component
   const columns: TableTemplateColumn<Item>[] = [
     {
@@ -86,6 +90,12 @@ export default async function ItemsPage({
               const variant = variantMap[row.status] ?? "default";
               return <Tag variant={variant}>{row.status}</Tag>;
             })()}
+            {Array.isArray((row as any).components) &&
+              (row as any).components.length > 0 && (
+                <Tag variant="warning">
+                  {(row as any).components.length} comps
+                </Tag>
+              )}
             {Array.isArray((row as any).tags) &&
               ((row as any).tags as { id: number; name: string }[]).map((t) => (
                 <Tag key={t.id} variant="default">
@@ -110,8 +120,10 @@ export default async function ItemsPage({
             sellPrice: Number(row.sellPrice),
             unique: row.unique,
             tagNames: ((row as any).tags || []).map((t: any) => t.name),
+            components: (row as any).components || [],
           }}
           availableTags={allTags}
+          availableComponents={availableComponents}
           action={updateItem}
           deleteAction={deleteItem}
         />
@@ -143,7 +155,11 @@ export default async function ItemsPage({
       columns={columns}
       emptyMessage="No items found"
       controlsStart={
-        <AddItemDialog action={createItem} availableTags={allTags} />
+        <AddItemDialog
+          action={createItem}
+          availableTags={allTags}
+          availableComponents={availableComponents}
+        />
       }
       controlsEnd={<StatusFilter current={statusFilter} />}
     />

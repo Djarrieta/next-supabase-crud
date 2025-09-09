@@ -14,12 +14,18 @@ import Link from "next/link";
 import { useState } from "react";
 // Tag names selected are resolved to tag ids (catalog) server-side.
 type TagOption = { name: string };
+type ComponentOption = { id: number; description: string | null };
 type Props = {
   action: (formData: FormData) => Promise<void>;
   availableTags: TagOption[];
+  availableComponents: ComponentOption[]; // existing items to select as components
 };
 
-export default function AddItemDialog({ action, availableTags }: Props) {
+export default function AddItemDialog({
+  action,
+  availableTags,
+  availableComponents,
+}: Props) {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -68,6 +74,15 @@ export default function AddItemDialog({ action, availableTags }: Props) {
               Manage tags
             </Link>
           </div>
+          <Form.MultiSelect
+            name="components"
+            label="Components (other items)"
+            options={availableComponents.map((c) => ({
+              value: c.id,
+              label: `${c.id} – ${c.description || "Untitled"}`.slice(0, 60),
+            }))}
+          />
+
           <div className="flex justify-end gap-2 pt-2">
             <DialogClose asChild>
               <Button variant="outline" type="button">

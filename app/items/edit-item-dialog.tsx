@@ -21,15 +21,18 @@ type InitialValues = {
   sellPrice?: number;
   unique?: Item["unique"];
   tagNames?: string[]; // selected tag names
+  components?: number[]; // selected component item ids
 };
 
 type TagOption = { name: string };
+type ComponentOption = { id: number; description: string | null };
 type Props = {
   action: (formData: FormData) => Promise<void>;
   deleteAction?: (formData: FormData) => Promise<void>;
   id: number;
   initialValues: InitialValues;
   availableTags: TagOption[];
+  availableComponents: ComponentOption[];
 };
 
 const EDITABLE_STATUS_OPTIONS = ITEM_STATUS_VALUES.filter(
@@ -42,6 +45,7 @@ export default function EditItemDialog({
   id,
   initialValues,
   availableTags,
+  availableComponents,
 }: Props) {
   const {
     description: initialDescription,
@@ -49,6 +53,7 @@ export default function EditItemDialog({
     sellPrice: initialSellPrice = 0,
     unique: initialUnique = false,
     tagNames: initialTagNames = [],
+    components: initialComponents = [],
   } = initialValues;
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialDescription);
@@ -86,6 +91,8 @@ export default function EditItemDialog({
             fd.set("sellPrice", String(sellPrice));
             fd.set("unique", unique ? "true" : "false");
             fd.append("_tags_present", "1");
+            fd.append("_components_present", "1");
+            // Components mirrored via hidden inputs below
             await action(fd);
             setOpen(false);
           }}
@@ -135,6 +142,18 @@ export default function EditItemDialog({
               Manage tags
             </Link>
           </div>
+
+          <Form.MultiSelect
+            name="components"
+            label="Components (other items)"
+            initialValues={initialComponents.filter((c) => c !== id)}
+            options={availableComponents
+              .filter((c) => c.id !== id)
+              .map((c) => ({
+                value: c.id,
+                label: `${c.id} – ${c.description || "Untitled"}`.slice(0, 60),
+              }))}
+          />
 
           <Form.Selector
             id={`status-${id}`}

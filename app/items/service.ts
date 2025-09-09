@@ -4,16 +4,16 @@ import { getDb, Item, items, ItemStatus, ITEM_STATUS_VALUES, itemTags } from '@/
 import { eq, sql, inArray } from 'drizzle-orm';
 import { ItemStatusFilter } from '@/app/items/schema';
 
-export interface ItemUpdate { description?: string; status?: ItemStatus; sellPrice?: number; unique?: boolean; tagNames?: string[] }
+export interface ItemUpdate { description?: string; status?: ItemStatus; sellPrice?: number; unique?: boolean; tagNames?: string[]; componentIds?: number[] }
 export interface PaginatedResult<T> { rows: T[]; total: number; page: number; pageSize: number }
 export interface ItemRepository {
-  create(description: string, sellPrice: number, unique: boolean, tagNames: string[]): Promise<void>;
+  create(description: string, sellPrice: number, unique: boolean, tagNames: string[], componentIds: number[]): Promise<void>;
   update(id: number, update: ItemUpdate): Promise<void>;
   list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>>;
 }
 
 class DrizzleItemRepository implements ItemRepository {
-  async create(description: string, sellPrice: number, unique: boolean, tagNames: string[]) {
+  async create(description: string, sellPrice: number, unique: boolean, tagNames: string[], componentIds: number[]) {
     const db = getDb();
     await db.transaction(async (tx) => {
       // Resolve tag names -> ids (create missing)
@@ -30,7 +30,14 @@ class DrizzleItemRepository implements ItemRepository {
         }
         tagIds = distinct.map(n => existingMap.get(n)!).filter(Boolean);
       }
-      await tx.insert(items).values({ description, sellPrice: sellPrice.toFixed(2), unique, tags: tagIds as any }).returning({ id: items.id });
+      // Validate components: filter out duplicates, self refs (not possible yet, id unknown), ensure referenced items exist
+      const compSet = new Set(componentIds.filter(id => Number.isInteger(id) && id > 0));
+      let finalComponents: number[] = [];
+      if (compSet.size) {
+        const existing = await tx.select({ id: items.id }).from(items).where(inArray(items.id, Array.from(compSet)));
+        finalComponents = existing.map(r => r.id as number);
+      }
+      await tx.insert(items).values({ description, sellPrice: sellPrice.toFixed(2), unique, tags: tagIds as any, components: finalComponents as any }).returning({ id: items.id });
     });
   }
   async update(id: number, update: ItemUpdate) {
@@ -55,6 +62,34 @@ class DrizzleItemRepository implements ItemRepository {
           updateData.tags = distinct.map(n => existingMap.get(n)!).filter(Boolean) as any;
         } else {
           updateData.tags = [] as any;
+        }
+      }
+      if (update.componentIds) {
+        // Components: remove self, duplicates, validate existence and prevent cycles (can't include an ancestor)
+        const raw = Array.from(new Set(update.componentIds.filter(v => Number.isInteger(v) && v > 0 && v !== id)));
+        if (raw.length) {
+          // Fetch all ancestors of current item to avoid adding them as components.
+          // Ancestors defined as items that (directly or indirectly) list this item in their components.
+          // We'll do a simple BFS upwards.
+          const ancestors = new Set<number>();
+          const queue: number[] = [id];
+          while (queue.length) {
+            const current = queue.shift()!;
+            const parents = await tx.select({ id: items.id, components: items.components }).from(items).where(sql`${items.components} @> ARRAY[${current}]::bigint[]`);
+            for (const p of parents) {
+              const pid = p.id as number;
+              if (!ancestors.has(pid)) { ancestors.add(pid); queue.push(pid); }
+            }
+          }
+          const filtered = raw.filter(cid => !ancestors.has(cid));
+          let finalComponents: number[] = [];
+            if (filtered.length) {
+              const existing = await tx.select({ id: items.id }).from(items).where(inArray(items.id, filtered));
+              finalComponents = existing.map(r => r.id as number).filter(cid => !ancestors.has(cid));
+            }
+          updateData.components = finalComponents as any;
+        } else {
+          updateData.components = [] as any;
         }
       }
       if (Object.keys(updateData).length) await tx.update(items).set(updateData).where(eq(items.id, id));
@@ -83,14 +118,15 @@ class DrizzleItemRepository implements ItemRepository {
       status: ((r as any).status || 'active') as ItemStatus,
       sellPrice: (r as any).sellPrice ? String((r as any).sellPrice) : '0',
       unique: Boolean((r as any).unique),
-      tags: ((r as any).tags || []).map((tid: number) => tagMapById.get(tid)).filter(Boolean)
+      tags: ((r as any).tags || []).map((tid: number) => tagMapById.get(tid)).filter(Boolean),
+      components: ((r as any).components || [])
     })) as unknown as Item[];
     return { rows: mapped, total: Number(total) || 0, page, pageSize };
   }
 }
 
 class SupabaseItemRepository implements ItemRepository {
-  async create(description: string, sellPrice: number, unique: boolean, tagNames: string[]) {
+  async create(description: string, sellPrice: number, unique: boolean, tagNames: string[], componentIds: number[]) {
     const supabase = getSupabaseClient();
     // Ensure tags exist, get ids
     const distinct = Array.from(new Set(tagNames.map(n => n.trim()).filter(Boolean)));
@@ -108,7 +144,17 @@ class SupabaseItemRepository implements ItemRepository {
       }
       tagIds = distinct.map(n => map.get(n)!).filter(Boolean);
     }
-    const { error } = await supabase.from('items').insert({ description, sell_price: sellPrice, unique, tags: tagIds }).single();
+    // Validate components (existence + remove duplicates + remove self if somehow passed -> no id yet) via a select
+    let finalComponents: number[] = [];
+    if (componentIds.length) {
+      const clean = Array.from(new Set(componentIds.filter(v => Number.isInteger(v) && v > 0)));
+      if (clean.length) {
+        const { data: existingComps, error: compsErr } = await supabase.from('items').select('id').in('id', clean);
+        if (compsErr) throw compsErr;
+        finalComponents = (existingComps || []).map(r => (r as any).id);
+      }
+    }
+    const { error } = await supabase.from('items').insert({ description, sell_price: sellPrice, unique, tags: tagIds, components: finalComponents }).single();
     if (error) throw error;
   }
   async update(id: number, update: ItemUpdate) {
@@ -119,7 +165,7 @@ class SupabaseItemRepository implements ItemRepository {
     if (update.status !== undefined) updateData.status = update.status;
     if (update.sellPrice !== undefined) updateData.sell_price = update.sellPrice;
     if (update.unique !== undefined) updateData.unique = update.unique;
-    if (update.tagNames) {
+  if (update.tagNames) {
       const distinct = Array.from(new Set(update.tagNames.map(n => n.trim()).filter(Boolean)));
       let tagIds: number[] = [];
       if (distinct.length) {
@@ -135,6 +181,32 @@ class SupabaseItemRepository implements ItemRepository {
         tagIds = distinct.map(n => map.get(n)!).filter(Boolean);
       }
       updateData.tags = tagIds;
+    }
+    if (update.componentIds) {
+      const clean = Array.from(new Set(update.componentIds.filter(v => Number.isInteger(v) && v > 0 && v !== id)));
+      let finalComponents: number[] = [];
+      if (clean.length) {
+        // prevent adding ancestors. We'll fetch all ancestors similarly (recursive client-side queries not possible in one call; emulate by iterative fetch until fixed point or 5 levels to avoid infinite loops)
+        const ancestors = new Set<number>();
+        let frontier: number[] = [id];
+        for (let depth = 0; depth < 10 && frontier.length; depth++) {
+          const { data: parentRows, error: parentErr } = await supabase.from('items').select('id, components').filter('components', 'cs', `{${frontier.join(',')}}`);
+          if (parentErr) throw parentErr;
+          const next: number[] = [];
+            (parentRows || []).forEach(r => {
+              const pid = (r as any).id as number;
+              if (!ancestors.has(pid)) { ancestors.add(pid); next.push(pid); }
+            });
+          frontier = next;
+        }
+        const safe = clean.filter(cid => !ancestors.has(cid));
+        if (safe.length) {
+          const { data: existingComps, error: compErr } = await supabase.from('items').select('id').in('id', safe);
+          if (compErr) throw compErr;
+          finalComponents = (existingComps || []).map(r => (r as any).id).filter(cid => !ancestors.has(cid));
+        }
+      }
+      updateData.components = finalComponents;
     }
     if (Object.keys(updateData).length) {
       const { error } = await supabase.from('items').update(updateData).eq('id', id).single();
@@ -153,7 +225,7 @@ class SupabaseItemRepository implements ItemRepository {
     if (statusFilter !== 'all') query = query.eq('status', statusFilter);
     const { data, error, count } = await query;
     if (error) throw error;
-    const itemsData = (data || []);
+  const itemsData = (data || []);
     const allTagIds = Array.from(new Set(itemsData.flatMap(r => ((r as any).tags as number[]) || [])));
     const tagMapById = new Map<number, { id: number; name: string }>();
     if (allTagIds.length) {
@@ -167,7 +239,8 @@ class SupabaseItemRepository implements ItemRepository {
       status: ((r as any).status || 'active') as ItemStatus,
       sellPrice: (r as any).sell_price != null ? String((r as any).sell_price) : '0',
       unique: Boolean((r as any).unique),
-      tags: ((r as any).tags || []).map((tid: number) => tagMapById.get(tid)).filter(Boolean)
+      tags: ((r as any).tags || []).map((tid: number) => tagMapById.get(tid)).filter(Boolean),
+      components: ((r as any).components || [])
     })) as unknown as Item[];
     return { rows: mapped, total: count || 0, page, pageSize };
   }
@@ -183,8 +256,10 @@ export class ItemsService {
     const unique = uniqueRaw === 'on' || uniqueRaw === 'true' || uniqueRaw === '1';
     const tagNamesRaw = formData.getAll('tags').map(v => String(v)).filter(v => v.trim());
     const tagNames = Array.from(new Set(tagNamesRaw.map(v => v.trim())));
+    const componentIdsRaw = formData.getAll('components').map(v => Number(v)).filter(v => Number.isInteger(v) && v > 0);
+    const componentIds = Array.from(new Set(componentIdsRaw));
     const finalDescription = description || 'Untitled item';
-    await this.repo.create(finalDescription, Number.isFinite(sellPrice) ? sellPrice : 0, unique, tagNames);
+    await this.repo.create(finalDescription, Number.isFinite(sellPrice) ? sellPrice : 0, unique, tagNames, componentIds);
   }
   async updateFromForm(formData: FormData) {
     const id = this.extractId(formData);
@@ -200,8 +275,13 @@ export class ItemsService {
       const tagNamesRaw2 = formData.getAll('tags').map(v => String(v)).filter(v => v.trim());
       tagNames = Array.from(new Set(tagNamesRaw2.map(v => v.trim())));
     }
+    let componentIds: number[] | undefined = undefined;
+    if (formData.get('_components_present')) {
+      const rawComp = formData.getAll('components').map(v => Number(v)).filter(v => Number.isInteger(v) && v > 0);
+      componentIds = Array.from(new Set(rawComp));
+    }
     const finalDescription = description || 'Untitled item';
-    await this.repo.update(id, { description: finalDescription, status, sellPrice, unique, tagNames });
+    await this.repo.update(id, { description: finalDescription, status, sellPrice, unique, tagNames, componentIds });
   }
   async softDeleteFromForm(formData: FormData) {
     const id = this.extractId(formData);

@@ -6,7 +6,12 @@ import {
 } from "@/components/ui/selector";
 import { TagGroup, TagGroupProps } from "@/components/ui/tag";
 import { cn } from "@/lib/utils";
-import { FormHTMLAttributes, forwardRef, InputHTMLAttributes } from "react";
+import {
+  FormHTMLAttributes,
+  forwardRef,
+  InputHTMLAttributes,
+  useState,
+} from "react";
 
 // Root form component
 type FormRootProps = FormHTMLAttributes<HTMLFormElement> & {
@@ -206,6 +211,60 @@ export const FormNamespace = Object.assign(Form, {
   CheckboxInput,
   Selector: SelectorInput,
   Tags: TagsInput,
+  // Lightweight multi-select (checkbox list) for components selection.
+  MultiSelect: ({
+    name,
+    label,
+    options,
+    initialValues = [],
+    idPrefix,
+  }: {
+    name: string;
+    label: string;
+    options: { value: number; label: string }[];
+    initialValues?: number[];
+    idPrefix?: string;
+  }) => {
+    const [selected, setSelected] = useState<Set<number>>(
+      new Set(initialValues)
+    );
+    return (
+      <div className="space-y-2">
+        <span className={baseLabelClasses}>{label}</span>
+        <div className="max-h-40 overflow-auto rounded border p-2 space-y-1 bg-background">
+          {options.map((o) => {
+            const id = `${idPrefix || name}-${o.value}`;
+            const checked = selected.has(o.value);
+            return (
+              <label
+                key={o.value}
+                htmlFor={id}
+                className="flex items-center gap-2 text-xs"
+              >
+                <input
+                  id={id}
+                  type="checkbox"
+                  className="h-3 w-3"
+                  defaultChecked={checked}
+                  onChange={(e) => {
+                    const next = new Set(selected);
+                    if (e.target.checked) next.add(o.value);
+                    else next.delete(o.value);
+                    setSelected(next);
+                  }}
+                />
+                <span className="flex-1 truncate">{o.label}</span>
+              </label>
+            );
+          })}
+        </div>
+        {/* Mirror selected values as hidden inputs for form submission */}
+        {Array.from(selected).map((v) => (
+          <input key={v} type="hidden" name={name} value={v} />
+        ))}
+      </div>
+    );
+  },
 });
 
 export { FormNamespace as Form };
