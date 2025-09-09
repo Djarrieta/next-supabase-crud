@@ -8,7 +8,7 @@ import TableTemplate, {
 import { Tag, TagVariant } from "@/components/ui/tag";
 import { createItem, deleteItem, listItems, updateItem } from "./actions";
 import { listAllItemTags } from "./tags/actions";
-import { MAX_PAGE_SIZE } from "./constants";
+import { MAX_PAGE_SIZE } from "@/app/constants";
 import {
   parsePagination,
   createPageHrefBuilder,

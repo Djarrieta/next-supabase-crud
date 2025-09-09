@@ -10,12 +10,13 @@ import {
 } from "./actions";
 import EditItemTagDialog from "@/components/edit-item-tag-dialog";
 import AddItemTagDialog from "./add-item-tag-dialog";
-import { ITEM_TAGS_MAX_PAGE_SIZE } from "./constants";
+
 import {
   parsePagination,
   createPageHrefBuilder,
 } from "@/components/pagination-server";
 import type { ItemTagRow } from "./schema";
+import { MAX_PAGE_SIZE } from "@/app/constants";
 
 export const revalidate = 0;
 
@@ -27,11 +28,11 @@ export default async function ItemTagsPage({
   let rows: ItemTagRow[] = [];
   let total = 0;
   let page = 1;
-  let pageSize = ITEM_TAGS_MAX_PAGE_SIZE;
+  let pageSize = MAX_PAGE_SIZE;
   ({ page, pageSize } = parsePagination({
     searchParams,
-    defaultPageSize: ITEM_TAGS_MAX_PAGE_SIZE,
-    maxPageSize: ITEM_TAGS_MAX_PAGE_SIZE,
+    defaultPageSize: MAX_PAGE_SIZE,
+    maxPageSize: MAX_PAGE_SIZE,
   }));
   try {
     const result = await listItemTags(page, pageSize);
@@ -74,7 +75,7 @@ export default async function ItemTagsPage({
 
   const makePageHref = createPageHrefBuilder("/item-tags", {
     pageSize,
-    defaultPageSize: ITEM_TAGS_MAX_PAGE_SIZE,
+    defaultPageSize: MAX_PAGE_SIZE,
   });
 
   return (
