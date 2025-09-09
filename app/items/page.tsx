@@ -1,4 +1,5 @@
 import AddItemDialog from "./add-item-dialog";
+import Breadcrumb from "@/components/ui/breadcrumb";
 import EditItemDialog from "./edit-item-dialog";
 import StatusFilter from "@/components/status-filter";
 import TableTemplate, {
@@ -129,6 +130,11 @@ export default async function ItemsPage({
     <TableTemplate
       title="Items"
       description="Listing all items."
+      breadcrumb={
+        <Breadcrumb
+          items={[{ label: "Home", href: "/" }, { label: "Items" }]}
+        />
+      }
       rows={itemsData}
       totalRows={total}
       page={page}

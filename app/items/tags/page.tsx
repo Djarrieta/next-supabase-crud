@@ -83,7 +83,11 @@ export default async function ItemTagsPage({
       description="Listing all item tags."
       breadcrumb={
         <Breadcrumb
-          items={[{ label: "Items", href: "/items" }, { label: "Tags" }]}
+          items={[
+            { label: "Home", href: "/" },
+            { label: "Items", href: "/items" },
+            { label: "Tags" },
+          ]}
         />
       }
       rows={rows}
