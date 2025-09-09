@@ -129,7 +129,7 @@ export default async function ItemsPage({
   return (
     <TableTemplate
       title="Items"
-      description="Listing all items."
+      description="Catalog of sellable or reference entities. Each item has: optional description, lifecycle status (active = available, inactive = temporarily hidden, archived = soft‑deleted), monetary sell price, uniqueness flag, and zero or more tags for fast grouping/filtering. Use the Add / Edit dialogs to manage details, change status, adjust price, toggle uniqueness, and attach or create tags."
       breadcrumb={
         <Breadcrumb
           items={[{ label: "Home", href: "/" }, { label: "Items" }]}
