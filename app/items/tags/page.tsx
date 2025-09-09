@@ -1,9 +1,14 @@
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
-import { listItemTags, updateItemTag, deleteItemTag, createItemTag } from "./actions";
+import {
+  listItemTags,
+  updateItemTag,
+  deleteItemTag,
+  createItemTag,
+} from "./actions";
 import EditItemTagDialog from "@/components/edit-item-tag-dialog";
-import AddItemTagDialog from './add-item-tag-dialog';
+import AddItemTagDialog from "./add-item-tag-dialog";
 import { ITEM_TAGS_MAX_PAGE_SIZE } from "./constants";
 import {
   parsePagination,
@@ -36,22 +41,38 @@ export default async function ItemTagsPage({
     pageSize = result?.pageSize || pageSize;
     // Fetch minimal items list for selector (limit to 200 to keep payload small)
     try {
-      const useDrizzle = Boolean(process.env.DATABASE_URL || process.env.DRIZZLE_DATABASE_URL);
+      const useDrizzle = Boolean(
+        process.env.DATABASE_URL || process.env.DRIZZLE_DATABASE_URL
+      );
       if (useDrizzle) {
-        const { getDb, items } = await import('@/lib/db/client');
+        const { getDb, items } = await import("@/lib/db/client");
         const db = getDb();
-        const itemRows: any[] = await db.select().from(items).orderBy(items.id).limit(200);
-        itemOptions = itemRows.map(r => ({ id: Number(r.id), label: r.description || `Item ${r.id}` }));
+        const itemRows: any[] = await db
+          .select()
+          .from(items)
+          .orderBy(items.id)
+          .limit(200);
+        itemOptions = itemRows.map((r) => ({
+          id: Number(r.id),
+          label: r.description || `Item ${r.id}`,
+        }));
       } else {
-        const { getSupabaseClient } = await import('@/lib/supabaseClient');
+        const { getSupabaseClient } = await import("@/lib/supabaseClient");
         const supabase = getSupabaseClient();
-        const { data, error } = await supabase.from('items').select('id, description').order('id').limit(200);
+        const { data, error } = await supabase
+          .from("items")
+          .select("id, description")
+          .order("id")
+          .limit(200);
         if (!error) {
-          itemOptions = (data || []).map((r: any) => ({ id: Number(r.id), label: r.description || `Item ${r.id}` }));
+          itemOptions = (data || []).map((r: any) => ({
+            id: Number(r.id),
+            label: r.description || `Item ${r.id}`,
+          }));
         }
       }
     } catch (inner) {
-      console.error('Failed to load items for tag creation', inner);
+      console.error("Failed to load items for tag creation", inner);
     }
   } catch (e: any) {
     return (
@@ -101,7 +122,9 @@ export default async function ItemTagsPage({
       makePageHref={makePageHref}
       columns={columns}
       emptyMessage="No tags found"
-  controlsStart={<AddItemTagDialog action={createItemTag} items={itemOptions} />}
+      controlsStart={
+        <AddItemTagDialog action={createItemTag} items={itemOptions} />
+      }
     />
   );
 }
