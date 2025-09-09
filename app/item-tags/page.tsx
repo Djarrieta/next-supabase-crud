@@ -3,6 +3,7 @@ import TableTemplate, {
 } from "@/components/table-template";
 import { listItemTags } from "./actions";
 import { ITEM_TAGS_MAX_PAGE_SIZE } from "./constants";
+import { parsePagination, createPageHrefBuilder } from "@/components/pagination-server";
 import type { ItemTagRow } from "./domain/schema";
 
 export const revalidate = 0;
@@ -16,19 +17,11 @@ export default async function ItemTagsPage({
   let total = 0;
   let page = 1;
   let pageSize = ITEM_TAGS_MAX_PAGE_SIZE;
-  const rawPage = searchParams?.page;
-  const rawPageSize = searchParams?.pageSize;
-  const parsedPage = Number(Array.isArray(rawPage) ? rawPage[0] : rawPage);
-  const parsedPageSize = Number(
-    Array.isArray(rawPageSize) ? rawPageSize[0] : rawPageSize
-  );
-  page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-  pageSize =
-    Number.isFinite(parsedPageSize) &&
-    parsedPageSize > 0 &&
-    parsedPageSize <= ITEM_TAGS_MAX_PAGE_SIZE
-      ? parsedPageSize
-      : ITEM_TAGS_MAX_PAGE_SIZE;
+  ({ page, pageSize } = parsePagination({
+    searchParams,
+    defaultPageSize: ITEM_TAGS_MAX_PAGE_SIZE,
+    maxPageSize: ITEM_TAGS_MAX_PAGE_SIZE,
+  }));
   try {
     const result = await listItemTags(page, pageSize);
     rows = result?.rows as ItemTagRow[];
@@ -52,14 +45,10 @@ export default async function ItemTagsPage({
     // Actions removed (tags are item-scoped and managed via item forms)
   ];
 
-  const makePageHref = (p: number) => {
-    const params = new URLSearchParams();
-    if (p !== 1) params.set("page", String(p));
-    if (pageSize !== ITEM_TAGS_MAX_PAGE_SIZE)
-      params.set("pageSize", String(pageSize));
-    const search = params.toString();
-    return `/item-tags${search ? `?${search}` : ""}`;
-  };
+  const makePageHref = createPageHrefBuilder("/item-tags", {
+    pageSize,
+    defaultPageSize: ITEM_TAGS_MAX_PAGE_SIZE,
+  });
 
   return (
     <TableTemplate

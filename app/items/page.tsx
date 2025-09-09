@@ -7,6 +7,7 @@ import TableTemplate, {
 import { Tag, TagVariant } from "@/components/ui/tag";
 import { createItem, deleteItem, listItems, updateItem } from "./actions";
 import { MAX_PAGE_SIZE } from "./constants";
+import { parsePagination, createPageHrefBuilder } from "@/components/pagination-server";
 import { Item, ItemStatusFilter } from "./domain/schema";
 // In one-to-many model, tags are per item; we still gather a deduplicated list for dialogs for convenience.
 
@@ -32,19 +33,11 @@ export default async function ItemsPage({
     ? (statusParam as ItemStatusFilter)
     : "active";
   // pagination params
-  const rawPage = searchParams?.page;
-  const rawPageSize = searchParams?.pageSize;
-  const parsedPage = Number(Array.isArray(rawPage) ? rawPage[0] : rawPage);
-  const parsedPageSize = Number(
-    Array.isArray(rawPageSize) ? rawPageSize[0] : rawPageSize
-  );
-  page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-  pageSize =
-    Number.isFinite(parsedPageSize) &&
-    parsedPageSize > 0 &&
-    parsedPageSize <= MAX_PAGE_SIZE
-      ? parsedPageSize
-      : MAX_PAGE_SIZE;
+  ({ page, pageSize } = parsePagination({
+    searchParams,
+    defaultPageSize: MAX_PAGE_SIZE,
+    maxPageSize: MAX_PAGE_SIZE,
+  }));
   try {
     const result = await listItems(statusFilter, page, pageSize);
     // Derive distinct tag names from current page only (could be expanded with separate query if needed)
@@ -125,14 +118,12 @@ export default async function ItemsPage({
     },
   ];
 
-  const makePageHref = (p: number) => {
-    const params = new URLSearchParams();
-    if (statusFilter !== "active") params.set("status", statusFilter);
-    if (p !== 1) params.set("page", String(p));
-    if (pageSize !== MAX_PAGE_SIZE) params.set("pageSize", String(pageSize));
-    const search = params.toString();
-    return `/items${search ? `?${search}` : ""}`;
-  };
+  const makePageHref = createPageHrefBuilder("/items", {
+    pageSize,
+    defaultPageSize: MAX_PAGE_SIZE,
+    extraParams:
+      statusFilter !== "active" ? { status: statusFilter } : undefined,
+  });
 
   return (
     <TableTemplate
