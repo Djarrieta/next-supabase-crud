@@ -146,7 +146,7 @@ export default function EditItemDialog({
           <Form.MultiSelect
             name="components"
             label="Components (other items)"
-            initialValues={initialComponents.filter((c) => c !== id)}
+            initialValue={initialComponents.filter((c) => c !== id)}
             options={availableComponents
               .filter((c) => c.id !== id)
               .map((c) => ({
