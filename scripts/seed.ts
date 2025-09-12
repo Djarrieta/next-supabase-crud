@@ -1,58 +1,73 @@
-// Simple seed script for development.
-// Usage: bun run db:seed
-// Ensures some baseline item tags and items exist.
+import { getDb, items, ItemTagRow, itemTags } from "@/lib/db/client";
 
-import { getDb, items, itemTags } from '@/lib/db/client';
-import { sql } from 'drizzle-orm';
-
-async function main() {
+export async function seedItemTags(total: number) {
   const db = getDb();
+  const tagNames = Array.from({ length: total }, (_, i) => `Item_Tag--${i + 1}`);
 
-  const TOTAL_TAGS = 5;
-
-  const tagsNames = Array.from({ length: TOTAL_TAGS }, (_, i) => `--Tag${i + 1}`);
-
-  // Insert any missing tags (idempotent)
-  await db.insert(itemTags)
-    .values(tagsNames.map(name => ({ name })))
+  await db
+    .insert(itemTags)
+    .values(tagNames.map((name) => ({ name })))
     .onConflictDoNothing();
 
-  // Fetch tag catalog
-  const tagRows = await db.select().from(itemTags);
-  const tagMap = new Map(tagRows.map(r => [r.name, r.id] as const));
+  const insertedTags = await db.select().from(itemTags);
 
-  // Build some demo items if table is empty (or very few rows)
-  const existingCount = await db.execute<{ count: string }>(sql`select count(*)::text as count from items`);
-  const count = parseInt(existingCount[0].count, 10);
-
-  if (count < 5) {
-    console.log(`Seeding demo items (current count: ${count})`);
-    const sampleData = [
-      { description: 'Standard Laptop', status: 'active', sellPrice: '899.99', unique: false, tags: ['Tag1', 'Tag2'] },
-      { description: 'Consulting Package', status: 'active', sellPrice: '2500.00', unique: false, tags: ['Tag3', 'Tag4'] },
-      { description: 'In-house CRM License', status: 'inactive', sellPrice: '0', unique: true, tags: ['Tag2', 'Tag5'] },
-      { description: 'Premium Support Plan', status: 'active', sellPrice: '499.00', unique: false, tags: ['Tag3'] },
-    ];
-
-    for (const item of sampleData) {
-      const tagIds = item.tags.map(t => tagMap.get(t)).filter(Boolean) as number[];
-      await db.insert(items).values({
-        description: item.description,
-        status: item.status as any,
-        sellPrice: item.sellPrice,
-        unique: item.unique,
-        tags: tagIds,
-        components: [],
-      });
-    }
-  } else {
-    console.log('Items table already seeded; skipping item inserts.');
-  }
-
-  console.log('Seed complete.');
+  return insertedTags;
 }
 
-main().catch(err => {
+export async function seedItems(tagMap: ItemTagRow[], total: number) {
+  const db = getDb();
+  const insertedIds: number[] = [];
+  for (let i = 0; i < total; i++) {
+    const description = `Item--${i + 1}`;
+    const status = i === 0 ? "archived" : i === 1 ? "inactive" : "active";
+    const sellPrice = (100 + i * 10).toFixed(2); // simple increasing price
+    const unique = i % 7 === 0; // every 7th is unique
+
+    // Randomly pick between 1 and 4 tag IDs (without names), without duplicates
+    const allTagIds = tagMap.map((t) => t.id);
+    const desiredCount = Math.min(
+      allTagIds.length,
+      Math.floor(Math.random() * 4) + 1
+    ); // 1..4 (bounded by available tags)
+
+    // Simple Fisher–Yates shuffle for unbiased sampling
+    for (let j = allTagIds.length - 1; j > 0; j--) {
+      const k = Math.floor(Math.random() * (j + 1));
+      [allTagIds[j], allTagIds[k]] = [allTagIds[k], allTagIds[j]];
+    }
+    const tagIds = allTagIds.slice(0, desiredCount);
+
+    // Determine components only for every 10th item (1-based index divisible by 10)
+    let componentIds: number[] = [];
+    if ((i + 1) % 10 === 0) {
+      // Pick up to the last 3 previously inserted item ids (or fewer if not enough)
+      const lookback = insertedIds.slice(-3);
+      componentIds = [...lookback];
+    }
+
+     await db
+      .insert(items)
+      .values({
+        description,
+        status,
+        sellPrice,
+        unique,
+        tags: tagIds,
+        components: componentIds,
+      })
+      .returning({ id: items.id });
+  }
+  return await db.select().from(items);
+}
+
+async function main() {
+  const tagMap = await seedItemTags(5);
+  await seedItems(tagMap, 100);
+
+  console.log("Seed complete.");
+}
+
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
