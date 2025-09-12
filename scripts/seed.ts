@@ -16,7 +16,6 @@ export async function seedItemTags(total: number) {
 
 export async function seedItems(tagMap: ItemTagRow[], total: number) {
   const db = getDb();
-  const insertedIds: number[] = [];
   for (let i = 0; i < total; i++) {
     const description = `Item--${i + 1}`;
     const status = i === 0 ? "archived" : i === 1 ? "inactive" : "active";
@@ -41,8 +40,7 @@ export async function seedItems(tagMap: ItemTagRow[], total: number) {
     let componentIds: number[] = [];
     if ((i + 1) % 10 === 0) {
       // Pick up to the last 3 previously inserted item ids (or fewer if not enough)
-      const lookback = insertedIds.slice(-3);
-      componentIds = [...lookback];
+      componentIds = [...Array.from({ length: Math.min(i, 3) }, (_, idx) => i - idx)];
     }
 
      await db
