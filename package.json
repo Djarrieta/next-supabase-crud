@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start -p 4000",
     "lint": "next lint",
-    "db:update": "rm -rf drizzle && bun drizzle:generate && bun drizzle:push && bun drizzle:seed",
+    "db:update": "rm -rf drizzle && bun db:drop-all && bun drizzle:generate && bun drizzle:push && bun drizzle:seed",
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:push": "drizzle-kit push",
-  "drizzle:studio": "drizzle-kit studio",
-  "drizzle:seed": "bun scripts/seed.ts"
+    "drizzle:studio": "drizzle-kit studio",
+    "drizzle:seed": "bun scripts/seed.ts",
+    "db:drop-all": "bun scripts/dropAllTables.ts --force"
+
     
   },
   "dependencies": {
