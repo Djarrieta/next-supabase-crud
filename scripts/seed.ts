@@ -1,4 +1,10 @@
-import { getDb, items, ItemStatus, ItemTagRow, itemTags } from "@/lib/db/client";
+import {
+  getDb,
+  items,
+  ItemStatus,
+  ItemTagRow,
+  itemTags,
+} from "@/lib/db/client";
 
 async function main() {
   const itemTags = await seedItemTags(5);
@@ -7,6 +13,11 @@ async function main() {
   console.log("Seed complete.");
 }
 
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+
 export async function seedItemTags(total: number) {
   const db = getDb();
   const tagNames = Array.from(
@@ -14,32 +25,30 @@ export async function seedItemTags(total: number) {
     (_, i) => `Item_Tag--${i + 1}`
   );
 
-  await db
+  return   await db
     .insert(itemTags)
     .values(tagNames.map((name) => ({ name })))
-    .onConflictDoNothing();
-
-  const insertedTags = await db.select().from(itemTags);
-
-  return insertedTags;
+    .returning({id: itemTags.id, name: itemTags.name });
 }
 
 export async function seedItems(itemTags: ItemTagRow[], total: number) {
   const db = getDb();
 
- 
-
-  const rows= [];
+  const rows = [];
 
   for (let i = 0; i < total; i++) {
     const description = `Item--${i + 1}`;
-    const status: ItemStatus = i === 0 ? "archived" : i === 1 ? "inactive" : "active";
+    const status: ItemStatus =
+      i === 0 ? "archived" : i === 1 ? "inactive" : "active";
     const sellPrice = (100 + i * 10).toFixed(2);
     const unique = i % 7 === 0;
 
     // Tag selection
     const allTagIds = itemTags.map((t) => t.id);
-    const desiredCount = Math.min(allTagIds.length, Math.floor(Math.random() * 4) + 1);
+    const desiredCount = Math.min(
+      allTagIds.length,
+      Math.floor(Math.random() * 4) + 1
+    );
     for (let j = allTagIds.length - 1; j > 0; j--) {
       const k = Math.floor(Math.random() * (j + 1));
       [allTagIds[j], allTagIds[k]] = [allTagIds[k], allTagIds[j]];
@@ -48,18 +57,24 @@ export async function seedItems(itemTags: ItemTagRow[], total: number) {
 
     let componentIds: number[] = [];
     if ((i + 1) % 10 === 0) {
-      // Reference up to 3 earlier ids 
-      componentIds = Array.from({ length: Math.min(3, i) }, (_, idx) => i - idx).filter(id => id > 0);
+      // Reference up to 3 earlier ids
+      componentIds = Array.from(
+        { length: Math.min(3, i) },
+        (_, idx) => i - idx
+      ).filter((id) => id > 0);
     }
 
-    rows.push({ description, status, sellPrice, unique, tags: tagIds, components: componentIds });
+    rows.push({
+      description,
+      status,
+      sellPrice,
+      unique,
+      tags: tagIds,
+      components: componentIds,
+    });
   }
-
-  await db.insert(items).values(rows).returning({ id: items.id });
-  return db.select().from(items);
+  
+  return await db.insert(items).values(rows).returning({ id: items.id , description: items.description  });
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+
