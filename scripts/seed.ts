@@ -1,8 +1,18 @@
 import { getDb, items, ItemTagRow, itemTags } from "@/lib/db/client";
 
+async function main() {
+  const itemTags = await seedItemTags(5);
+  await seedItems(itemTags, 1000);
+
+  console.log("Seed complete.");
+}
+
 export async function seedItemTags(total: number) {
   const db = getDb();
-  const tagNames = Array.from({ length: total }, (_, i) => `Item_Tag--${i + 1}`);
+  const tagNames = Array.from(
+    { length: total },
+    (_, i) => `Item_Tag--${i + 1}`
+  );
 
   await db
     .insert(itemTags)
@@ -40,10 +50,12 @@ export async function seedItems(tagMap: ItemTagRow[], total: number) {
     let componentIds: number[] = [];
     if ((i + 1) % 10 === 0) {
       // Pick up to the last 3 previously inserted item ids (or fewer if not enough)
-      componentIds = [...Array.from({ length: Math.min(i, 3) }, (_, idx) => i - idx)];
+      componentIds = [
+        ...Array.from({ length: Math.min(i, 3) }, (_, idx) => i - idx),
+      ];
     }
 
-     await db
+    await db
       .insert(items)
       .values({
         description,
@@ -56,13 +68,6 @@ export async function seedItems(tagMap: ItemTagRow[], total: number) {
       .returning({ id: items.id });
   }
   return await db.select().from(items);
-}
-
-async function main() {
-  const tagMap = await seedItemTags(5);
-  await seedItems(tagMap, 100);
-
-  console.log("Seed complete.");
 }
 
 main().catch((err) => {
