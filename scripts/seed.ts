@@ -23,7 +23,7 @@ export async function seedItemTags(total: number) {
   const tagNames = Array.from(
     { length: total },
     (_, i) => `Item_Tag--${i + 1}`
-  );
+  )
 
   return   await db
     .insert(itemTags)

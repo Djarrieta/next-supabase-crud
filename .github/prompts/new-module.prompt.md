@@ -1,0 +1,181 @@
+name: "Scaffold New Domain Module"
+description: "Generate a new CRUD module (schema, service, actions, page, dialogs) following the project conventions."
+
+# You can call this from VS Code: Chat: Run Prompt -> Scaffold New Domain Module
+
+# Variables can be supplied inline when running, or you'll be asked interactively.
+
+args:
+
+- name: module_name
+  description: "Singular, lower-case feature name (e.g. item, order, customer)"
+  required: true
+- name: plural_name
+  description: "Plural display label (e.g. Items, Orders). Defaults to module_name + 's'"
+  required: false
+- name: table_name
+  description: "DB table name (snake_case). Defaults to plural of module_name (e.g. items)"
+  required: false
+- name: fields
+  description: |
+  Comma separated list of extra fields (excluding id, status, created_at, updated_at). Each field format:
+  name:type[:options]
+  Supported types: text, numeric(precision,scale), boolean, bigint, enum(a|b|c), json
+  Examples: description:text, price:numeric(10,2), unique:boolean, category:enum(red|blue|green)
+  required: false
+- name: status_enum
+  description: "Comma separated allowed lifecycle statuses (default: active,inactive,archived)"
+  required: false
+- name: with_tags
+  description: "yes/no - include tag support like Items.tags (default: no)"
+  required: false
+- name: with_components
+  description: "yes/no - include self-referencing components array like Items (default: no)"
+  required: false
+
+---
+
+You are generating a new domain module for a Next.js + Drizzle + Supabase hybrid codebase.
+Follow these architectural rules strictly:
+
+ARCHITECTURE LAYERS
+
+1. Domain Schema (Drizzle): app/<plural>/schema.ts
+2. Domain Service + Repository: app/<plural>/service.ts
+3. Server Actions (Next.js): app/<plural>/actions.ts
+4. UI (route page + dialogs/components): app/<plural>/page.tsx and app/<plural>/\*-dialog.tsx
+5. Central schema aggregator: lib/db/schema.ts (manual update step)
+
+NEVER import React/Next/UI inside schema or service modules (except allowed next/cache in actions).
+
+INPUT VARIABLES
+
+- module_name: {{module_name}}
+- plural_name: {{plural_name}}
+- table_name: {{table_name}}
+- fields: {{fields}}
+- status_enum: {{status_enum}}
+- with_tags: {{with_tags}}
+- with_components: {{with_components}}
+
+DERIVE DEFAULTS
+If plural_name empty -> capitalize(module_name) + 's' for UI label and plural lower-case for folder name.
+If table_name empty -> plural lower-case.
+If status_enum empty -> active,inactive,archived.
+If with_tags != yes -> omit tags array.
+If with_components != yes -> omit components array.
+
+OUTPUT EXACT STEPS SECTION first, then code blocks.
+
+STEPS (produce as checklist markdown):
+
+1. Create folder app/<plural_lower>/
+2. Add schema.ts with pgTable definition including:
+   - id bigint identity primary key
+   - status enum (generate new enum if name differs from existing; enum name pattern: <module_name>\_status)
+   - timestamps (optional? only if asked — default omit unless user includes created_at / updated_at fields)
+   - requested fields parsed from fields input
+   - optional arrays: tags (bigint[]) and components (bigint[]) based on flags
+3. Add service.ts implementing repository (Drizzle + Supabase versions) with CRUD (create, update, list, soft delete via status = archived if archived is in statuses; else hard delete)
+4. Add actions.ts exposing create / update / delete / list server actions + revalidatePath("/<plural_lower>")
+5. Add page.tsx rendering TableTemplate consistent with Items example (copy and adapt columns)
+6. Add add-<module_name>-dialog.tsx and edit-<module_name>-dialog.tsx (adapt from items dialogs; minimal fields form). Include hidden markers \_tags_present / \_components_present if those arrays included.
+7. Update lib/db/schema.ts to export the new table + related types.
+8. (Optional) If tags included and you want a dedicated tag catalog, instruct follow-up similar to itemTags module.
+9. Run migration commands: bun drizzle:generate && bun drizzle:push
+10. Add seed support: append an idempotent seeding function for the new table to scripts/seed.ts and run: bun drizzle:seed
+
+PARSING FIELDS
+For each field spec name:type[:options]
+
+- text => text('col')
+- boolean => boolean('col').notNull().default(false)
+- numeric(p,s) => numeric('col', { precision: p, scale: s }).notNull().default('0')
+- bigint => bigint('col', { mode: 'number' })
+- enum(a|b|c) => create local const VAR*VALUES = ['a','b','c'] as const; pgEnum('<module_name>*<field>\_enum', VAR_VALUES); column uses that enum
+- json => json('col').$type<unknown>() (if pg json supported) else text fallback with comment
+  All columns default nullable unless type rule above specifies notNull.
+
+STATUS ENUM
+If statuses equal default set, you may reuse existing item_status enum ONLY IF semantic meaning matches; otherwise create new one <module_name>\_status.
+Assume we create a new enum to avoid coupling unless explicitly told to reuse.
+
+SERVICE RULES
+
+- createFromForm & updateFromForm mirror ItemsService style (extract + validate fields)
+- list returns PaginatedResult<T>
+- softDelete sets status to 'archived' if available else performs hard delete
+- Validate numeric fields -> parseFloat; boolean -> presence or 'on'/'true'/'1'
+- Tag logic only if tags array exists (replicate pattern from items service)
+- Components logic only if components array exists (self-reference avoidance & ancestor cycle prevention similar to ItemsService)
+
+ACTIONS RULES
+Same pattern as app/items/actions.ts; keep try/catch + revalidatePath.
+
+PAGE RULES
+
+- Use TableTemplate
+- Provide description summarizing domain: "<Plural UI Label> management. Auto‑generated skeleton. Adjust columns, dialogs, and domain rules as needed."
+- Columns: id + first textual field(s) + status tag + counts (tags/components) if present + actions column with edit dialog
+
+DIALOGS
+
+- Add form fields for each custom field (excluding id, status auto default on create) + tags/components selectors if included
+- Edit dialog includes status selector (enum values) + optional toggles
+
+FINISHING OUTPUT FORMAT
+
+1. Checklist
+2. File tree (only new/changed paths)
+3. Each file as a separate fenced code block with path comment // path: <path>
+4. Post-generation commands section
+5. Seed snippet section (MUST include: what seed file does, how to integrate new function, idempotency note, and example invocation)
+6. Notes / next steps
+
+Return only markdown; no extra explanation outside spec.
+If user input insufficient, make reasonable assumptions and list them under Notes.
+
+SEEDING RULES & CONTEXT (INCLUDE IN GENERATED OUTPUT):
+The existing seed file orchestrates inserting baseline lookup rows and bulk demo data. For a NEW MODULE you must:
+
+1. Create an async function seed<PascalPlural>() in scripts/seed.ts. Example: seedCustomers, seedOrders.
+2. Ensure idempotency: either check if any row exists before inserting OR use a WHERE NOT EXISTS pattern / ON CONFLICT DO NOTHING (if unique constraints defined). In Drizzle you can early-return after a count/select.
+3. Limit volume by default (e.g., 25–100 rows) but parameterize a 'total' argument with a sensible default.
+4. Return inserted (or existing) primary keys so later seed steps could reference them.
+5. Append invocation to main() in scripts/seed.ts in a clearly marked section (// New module seeds) after core dependencies (e.g., tags) are present.
+6. If module uses tags/components arrays, ensure those dependencies are seeded first; pass resolved foreign key ids / tag ids into your generator.
+7. KEEP seed functions deterministic when possible (e.g., sequential naming) but you may vary a couple fields for realism.
+8. Document in the generated output EXACT diff to add to scripts/seed.ts:
+   - Function definition
+   - Call site inside main()
+9. Provide a rerun workflow: to reset only this module's data, explain optional manual deletion (truncate table) then call its seed function.
+10. Note performance considerations for large totals (batch inserts vs individual inserts; prefer single insert(values[...]))
+
+Example pattern to emulate (adjust names):
+
+```ts
+// In scripts/seed.ts
+export async function seedCustomers(total = 25) {
+  const db = getDb();
+  const existing = await db
+    .select({ id: customers.id })
+    .from(customers)
+    .limit(1);
+  if (existing.length) {
+    return [];
+  } // idempotent: already seeded
+  const rows = Array.from({ length: total }, (_, i) => ({
+    name: `Customer-${i + 1}`,
+    email: `customer${i + 1}@example.com`,
+    vip: i % 10 === 0,
+  }));
+  return await db
+    .insert(customers)
+    .values(rows)
+    .returning({ id: customers.id });
+}
+// Inside main():
+await seedCustomers(50);
+```
+
+When generating the NEW MODULE seed snippet, adapt to any extra fields & flags (tags/components) provided by the user input.
