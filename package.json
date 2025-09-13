@@ -11,7 +11,7 @@
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:push": "drizzle-kit push",
     "drizzle:studio": "drizzle-kit studio",
-    "drizzle:seed": "bun scripts/seed.ts",
+    "drizzle:seed": "bun scripts/seed/index.ts",
     "db:drop-all": "bun scripts/dropAllTables.ts --force"
   },
   "dependencies": {

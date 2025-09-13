@@ -1,12 +1,13 @@
 import AddItemDialog from "./add-item-dialog";
 import Breadcrumb from "@/components/breadcrumb";
-import EditItemDialog from "./edit-item-dialog";
 import StatusFilter from "@/components/status-filter";
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
 import { Tag, TagVariant } from "@/components/ui/tag";
 import { createItem, deleteItem, listItems, updateItem } from "./actions";
+import { ViewIcon } from "@/components/icons";
+import Link from "next/link";
 import { listAllItemTags } from "./tags/actions";
 import { MAX_PAGE_SIZE } from "@/app/constants";
 import {
@@ -112,21 +113,14 @@ export default async function ItemsPage({
       alignRight: true,
       widthClass: "w-28",
       cell: (row) => (
-        <EditItemDialog
-          id={row.id}
-          initialValues={{
-            description: row.description ?? "",
-            status: row.status,
-            sellPrice: Number(row.sellPrice),
-            unique: row.unique,
-            tagNames: ((row as any).tags || []).map((t: any) => t.name),
-            components: (row as any).components || [],
-          }}
-          availableTags={allTags}
-          availableComponents={availableComponents}
-          action={updateItem}
-          deleteAction={deleteItem}
-        />
+        <Link
+          href={`/items/${row.id}`}
+          className="inline-flex items-center justify-center rounded border px-2 py-1 text-xs hover:bg-accent"
+          aria-label={`View item ${row.id}`}
+          title="View details"
+        >
+          <ViewIcon className="w-4 h-4" />
+        </Link>
       ),
     },
   ];

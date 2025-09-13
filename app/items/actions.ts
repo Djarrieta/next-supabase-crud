@@ -25,6 +25,8 @@ export async function updateItem(formData: FormData) {
     throw e;
   }
   revalidatePath("/items");
+  const id = formData.get('id');
+  if (id) revalidatePath(`/items/${id}`);
 }
 
 export async function deleteItem(formData: FormData) {
@@ -35,6 +37,8 @@ export async function deleteItem(formData: FormData) {
     throw e;
   }
   revalidatePath("/items");
+  const id = formData.get('id');
+  if (id) revalidatePath(`/items/${id}`);
 }
 
 export async function listItems(statusFilter: ItemStatus | 'all', page: number, pageSize: number) {
@@ -42,6 +46,15 @@ export async function listItems(statusFilter: ItemStatus | 'all', page: number, 
     return await getItemsService().list(statusFilter, page, pageSize);
   } catch (e) {
     console.error("listItems failed:", e);
+    throw e;
+  }
+}
+
+export async function getItem(id: number) {
+  try {
+    return await getItemsService().get(id);
+  } catch (e) {
+    console.error('getItem failed:', e);
     throw e;
   }
 }

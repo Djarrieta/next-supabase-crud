@@ -15,6 +15,7 @@ export interface ItemRepository {
   create(description: string, sellPrice: number, unique: boolean, tagNames: string[], componentIds: number[]): Promise<void>;
   update(id: number, update: ItemUpdate): Promise<void>;
   list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>>;
+  get(id: number): Promise<Item | null>;
 }
 
 class DrizzleItemRepository implements ItemRepository {
@@ -127,6 +128,28 @@ class DrizzleItemRepository implements ItemRepository {
       components: ((r as any).components || [])
     })) as unknown as Item[];
     return { rows: mapped, total: Number(total) || 0, page, pageSize };
+  }
+  async get(id: number): Promise<Item | null> {
+    if (!id || Number.isNaN(id)) return null;
+    const db = getDb();
+    const rows = await db.select().from(items).where(eq(items.id, id)).limit(1);
+    if (!rows.length) return null;
+    const row: any = rows[0];
+    const tagIds: number[] = Array.isArray(row.tags) ? row.tags : [];
+    let tagsResolved: { id: number; name: string }[] = [];
+    if (tagIds.length) {
+      const tagRows = await db.select().from(itemTags).where(inArray(itemTags.id, tagIds));
+      tagsResolved = tagRows.map(tr => ({ id: tr.id as number, name: tr.name || '' }));
+    }
+    return {
+      id: row.id as number,
+      description: row.description ?? null,
+      status: (row.status || 'active') as ItemStatus,
+      sellPrice: row.sellPrice ? String(row.sellPrice) : '0',
+      unique: Boolean(row.unique),
+      tags: tagsResolved,
+      components: Array.isArray(row.components) ? row.components : [],
+    } as Item;
   }
 }
 
@@ -249,6 +272,33 @@ class SupabaseItemRepository implements ItemRepository {
     })) as unknown as Item[];
     return { rows: mapped, total: count || 0, page, pageSize };
   }
+  async get(id: number): Promise<Item | null> {
+    if (!id || Number.isNaN(id)) return null;
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('items')
+      .select('id, description, status, sell_price, unique, tags, components')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    const tagIds: number[] = Array.isArray((data as any).tags) ? (data as any).tags : [];
+    let tagsResolved: { id: number; name: string }[] = [];
+    if (tagIds.length) {
+      const { data: tagRows, error: tagErr } = await supabase.from('item_tags').select('id, name').in('id', tagIds);
+      if (tagErr) throw tagErr;
+      tagsResolved = (tagRows || []).map(r => ({ id: (r as any).id, name: (r as any).name }));
+    }
+    return {
+      id: (data as any).id as number,
+      description: (data as any).description ?? null,
+      status: ((data as any).status || 'active') as ItemStatus,
+      sellPrice: (data as any).sell_price != null ? String((data as any).sell_price) : '0',
+      unique: Boolean((data as any).unique),
+      tags: tagsResolved,
+      components: Array.isArray((data as any).components) ? (data as any).components : [],
+    } as Item;
+  }
 }
 
 export class ItemsService {
@@ -298,6 +348,10 @@ export class ItemsService {
     const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
     const safePageSize = Number.isFinite(pageSize) && pageSize > 0 && pageSize <= 100 ? Math.floor(pageSize) : 10;
     return this.repo.list(filter, safePage, safePageSize);
+  }
+  async get(id: number) {
+    if (!id || Number.isNaN(id)) throw new Error('Invalid item id');
+    return this.repo.get(id);
   }
   private extractId(formData: FormData): number {
     const raw = formData.get('id');

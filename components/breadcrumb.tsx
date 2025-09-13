@@ -33,18 +33,22 @@ export default function Breadcrumb({ items, className, separator }: Props) {
         {items.map((item, idx) => {
           const isLast = idx === items.length - 1;
           return (
-            <BreadcrumbItem key={idx}>
-              {isLast || !item.href ? (
-                <BreadcrumbPage>{item.label}</BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink asChild>
-                  <Link href={item.href}>{item.label}</Link>
-                </BreadcrumbLink>
-              )}
+            <>
+              <BreadcrumbItem key={`crumb-${idx}`}>
+                {isLast || !item.href ? (
+                  <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink asChild>
+                    <Link href={item.href}>{item.label}</Link>
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
               {!isLast && (
-                <BreadcrumbSeparator>{separator}</BreadcrumbSeparator>
+                <BreadcrumbSeparator key={`sep-${idx}`}>
+                  {separator}
+                </BreadcrumbSeparator>
               )}
-            </BreadcrumbItem>
+            </>
           );
         })}
       </BreadcrumbList>
