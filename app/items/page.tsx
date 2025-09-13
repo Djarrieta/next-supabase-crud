@@ -82,6 +82,7 @@ export default async function ItemsPage({
         <div className="flex flex-col">
           <span>{row.description ?? ""}</span>
           <Badges
+            unique={row.unique}
             status={row.status as string}
             componentsCount={
               Array.isArray((row as any).components)
