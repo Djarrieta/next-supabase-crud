@@ -66,9 +66,12 @@ export default async function ItemDetailPage({ params }: Props) {
       <ItemDetailClient
         initial={{
           id,
+          name: (itemData as any).name || `Item ${id}`,
           description: itemData?.description || "",
           status: (itemData as any).status,
           sellPrice: Number(itemData?.sellPrice || 0),
+          purchasePrice: Number((itemData as any).purchasePrice || 0),
+          rentPrice: Number((itemData as any).rentPrice || 0),
           unique: Boolean(itemData?.unique),
           tagNames: ((itemData as any).tags || []).map((t: any) => t.name),
           components: (itemData as any).components || [],

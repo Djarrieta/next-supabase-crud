@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { ItemsIcon, PersonsIcon, PlaceholderIcon } from "@/components/icons";
 import Breadcrumb from "@/components/breadcrumb";
+import { ItemsIcon, PersonsIcon } from "@/components/icons";
+import Link from "next/link";
 
 export default function HomePage() {
   const cards: {

@@ -9,9 +9,12 @@ import { useState, useTransition } from "react";
 
 export interface ItemDetailInitialValues {
   id: number;
+  name: string;
   description: string;
   status: ItemStatus;
   sellPrice: number;
+  purchasePrice: number;
+  rentPrice: number;
   unique: boolean;
   tagNames: string[];
   components: number[];
@@ -31,8 +34,6 @@ interface Props {
   availableComponents: ComponentOption[];
   onSubmit: (fd: FormData) => Promise<void>;
   onArchive?: (fd: FormData) => Promise<void>;
-  defaultEditMode?: boolean;
-  forceReadOnly?: boolean; // overrides edit mode toggle
 }
 
 const EDITABLE_STATUS_OPTIONS = ITEM_STATUS_VALUES.filter(
@@ -45,16 +46,18 @@ export default function ItemDetailClient({
   availableComponents,
   onSubmit,
   onArchive,
-  defaultEditMode = false,
-  forceReadOnly = false,
 }: Props) {
-  const [editMode, setEditMode] = useState(defaultEditMode);
-  const effectiveDisabled = forceReadOnly || !editMode;
+  const [editMode, setEditMode] = useState(true);
 
   // local form state (from former InlineItemForm)
   const [description, setDescription] = useState(initial.description);
+  const [name, setName] = useState<string>(initial.name || "");
   const [status, setStatus] = useState<ItemStatus>(initial.status);
   const [sellPrice, setSellPrice] = useState<number>(initial.sellPrice);
+  const [purchasePrice, setPurchasePrice] = useState<number>(
+    initial.purchasePrice
+  );
+  const [rentPrice, setRentPrice] = useState<number>(initial.rentPrice);
   const [unique, setUnique] = useState<boolean>(initial.unique);
   const [tagNames, setTagNames] = useState<string[]>(initial.tagNames);
   const [isPending, startTransition] = useTransition();
@@ -63,8 +66,11 @@ export default function ItemDetailClient({
 
   function handleSubmit(fd: FormData) {
     fd.append("id", String(initial.id));
+    fd.set("name", name.trim());
     fd.append("status", status);
     fd.set("sellPrice", String(sellPrice));
+    fd.set("purchasePrice", String(purchasePrice));
+    fd.set("rentPrice", String(rentPrice));
     fd.set("unique", unique ? "true" : "false");
     fd.append("_tags_present", "1");
     fd.append("_components_present", "1");
@@ -89,7 +95,6 @@ export default function ItemDetailClient({
           onClick={() => setEditMode((m) => !m)}
           aria-pressed={editMode}
           className="flex items-center gap-1"
-          disabled={forceReadOnly}
         >
           {editMode ? (
             <ViewIcon className="w-3.5 h-3.5" />
@@ -99,107 +104,220 @@ export default function ItemDetailClient({
         </Button>
       </div>
       <div className="pr-20">
-        <Form action={handleSubmit} className="space-y-4">
+        <Form action={handleSubmit} className="space-y-6">
           <input type="hidden" name="id" value={initial.id} />
-          <div className="grid gap-4 md:grid-cols-2">
-            <Form.TextInput
-              name="description"
-              label="Description"
-              id={`description-${initial.id}`}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Item description"
-              maxLength={500}
-              autoFocus={editMode}
-              disabled={effectiveDisabled}
-            />
-            <Form.NumberInput
-              name="sellPrice"
-              label="Sell Price"
-              id={`sellPrice-${initial.id}`}
-              step="0.01"
-              min={0}
-              value={sellPrice}
-              onChange={(e) => setSellPrice(parseFloat(e.target.value) || 0)}
-              disabled={effectiveDisabled}
-            />
-            <Form.CheckboxInput
-              name="unique"
-              label="Unique"
-              id={`unique-${initial.id}`}
-              checked={unique}
-              onChange={(e) => setUnique(e.target.checked)}
-              disabled={effectiveDisabled}
-            />
-            <Form.Selector
-              id={`status-${initial.id}`}
-              name="status"
-              label="Status"
-              value={status}
-              onValueChange={(v) => setStatus(v as ItemStatus)}
-              options={EDITABLE_STATUS_OPTIONS.map((s) => ({
-                value: s,
-                label: s.charAt(0).toUpperCase() + s.slice(1),
-              }))}
-              disabled={effectiveDisabled}
-            />
-          </div>
 
-          {effectiveDisabled ? (
-            <Badges
-              unique={unique}
-              status={status}
-              componentsCount={initial.components.length}
-              tags={tagNames.map((name) => ({ name }))}
-              className="pt-1 text-xs"
-            />
-          ) : (
-            <>
-              <Form.Tags
-                name="tags"
-                options={availableTags.map((t) => ({
-                  value: t.name,
-                  label: t.name,
-                }))}
-                value={tagNames}
-                onValueChange={(vals) => setTagNames(vals as string[])}
-                disabled={effectiveDisabled}
-              />
-              <div className="-mt-2 mb-2 text-xs text-muted-foreground">
-                Need to add or edit tags?{" "}
-                <Link
-                  href="/items/tags"
-                  className="underline underline-offset-2 hover:text-primary"
-                >
-                  Manage tags
-                </Link>
+          {editMode ? (
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="md:col-span-2 space-y-4">
+                <Form.TextInput
+                  name="name"
+                  label="Name"
+                  id={`name-${initial.id}`}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Short name"
+                  maxLength={120}
+                  autoFocus
+                  disabled={!editMode}
+                />
+                <Form.TextInput
+                  name="description"
+                  label="Description"
+                  id={`description-${initial.id}`}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Item description"
+                  maxLength={500}
+                  disabled={!editMode}
+                />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Form.Selector
+                    id={`status-${initial.id}`}
+                    name="status"
+                    label="Status"
+                    value={status}
+                    onValueChange={(v) => setStatus(v as ItemStatus)}
+                    options={EDITABLE_STATUS_OPTIONS.map((s) => ({
+                      value: s,
+                      label: s.charAt(0).toUpperCase() + s.slice(1),
+                    }))}
+                    disabled={!editMode}
+                  />
+                  <Form.CheckboxInput
+                    name="unique"
+                    label="Unique"
+                    id={`unique-${initial.id}`}
+                    checked={unique}
+                    onChange={(e) => setUnique(e.target.checked)}
+                    disabled={!editMode}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Pricing
+                  </label>
+                  <div className="grid gap-4 sm:grid-cols-3 rounded-md border p-4 bg-muted/30">
+                    <Form.NumberInput
+                      name="sellPrice"
+                      label="Sell"
+                      id={`sellPrice-${initial.id}`}
+                      step="0.01"
+                      min={0}
+                      value={sellPrice}
+                      onChange={(e) =>
+                        setSellPrice(parseFloat(e.target.value) || 0)
+                      }
+                      disabled={!editMode}
+                    />
+                    <Form.NumberInput
+                      name="purchasePrice"
+                      label="Purchase"
+                      id={`purchasePrice-${initial.id}`}
+                      step="0.01"
+                      min={0}
+                      value={purchasePrice}
+                      onChange={(e) =>
+                        setPurchasePrice(parseFloat(e.target.value) || 0)
+                      }
+                      disabled={!editMode}
+                    />
+                    <Form.NumberInput
+                      name="rentPrice"
+                      label="Rent"
+                      id={`rentPrice-${initial.id}`}
+                      step="0.01"
+                      min={0}
+                      value={rentPrice}
+                      onChange={(e) =>
+                        setRentPrice(parseFloat(e.target.value) || 0)
+                      }
+                      disabled={!editMode}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Form.Tags
+                    name="tags"
+                    options={availableTags.map((t) => ({
+                      value: t.name,
+                      label: t.name,
+                    }))}
+                    value={tagNames}
+                    onValueChange={(vals) => setTagNames(vals as string[])}
+                    disabled={!editMode}
+                  />
+                  <div className="-mt-1 mb-2 text-xs text-muted-foreground">
+                    Need to add or edit tags?{" "}
+                    <Link
+                      href="/items/tags"
+                      className="underline underline-offset-2 hover:text-primary"
+                    >
+                      Manage tags
+                    </Link>
+                  </div>
+                </div>
               </div>
-            </>
+              <div className="space-y-4">
+                <Form.MultiSelect
+                  name="components"
+                  label="Components (other items)"
+                  initialValue={initial.components.filter(
+                    (c) => c !== initial.id
+                  )}
+                  options={availableComponents
+                    .filter((c) => c.id !== initial.id)
+                    .map((c) => ({
+                      value: c.id,
+                      label: `${c.id} – ${c.description || "Untitled"}`.slice(
+                        0,
+                        60
+                      ),
+                    }))}
+                  disabled={!editMode}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold flex items-center gap-3">
+                  <span>{name || `Item ${initial.id}`}</span>
+                  <Badges
+                    unique={unique}
+                    status={status}
+                    componentsCount={initial.components.length}
+                    tags={tagNames.map((n) => ({ name: n }))}
+                    className="text-[10px] space-x-1"
+                  />
+                </h2>
+                <p className="text-sm text-muted-foreground whitespace-pre-line min-h-[1rem]">
+                  {description || (
+                    <span className="italic opacity-70">No description</span>
+                  )}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Pricing
+                </label>
+                <div className="grid gap-4 sm:grid-cols-3 rounded-md border p-4 bg-muted/30 text-sm">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">
+                      Sell
+                    </div>
+                    <div className="font-medium">{sellPrice.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">
+                      Purchase
+                    </div>
+                    <div className="font-medium">
+                      {purchasePrice.toFixed(2)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">
+                      Rent
+                    </div>
+                    <div className="font-medium">{rentPrice.toFixed(2)}</div>
+                  </div>
+                </div>
+              </div>
+              {initial.components.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    SubComponents
+                  </label>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {initial.components
+                      .filter((c) => c !== initial.id)
+                      .map((cid) => (
+                        <span
+                          key={cid}
+                          className="rounded bg-muted px-2 py-1 font-mono text-[10px]"
+                        >
+                          #{cid}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
-
-          <Form.MultiSelect
-            name="components"
-            label="Components (other items)"
-            initialValue={initial.components.filter((c) => c !== initial.id)}
-            options={availableComponents
-              .filter((c) => c.id !== initial.id)
-              .map((c) => ({
-                value: c.id,
-                label: `${c.id} – ${c.description || "Untitled"}`.slice(0, 60),
-              }))}
-            disabled={effectiveDisabled}
-          />
 
           <div className="flex items-center justify-between gap-4 pt-2">
             <div className="text-xs text-muted-foreground space-x-3">
               {isPending && <span>Saving...</span>}
-              {savedAt && !isPending && (
+              {editMode && savedAt && !isPending && (
                 <span className="text-green-600">Saved</span>
               )}
               {error && <span className="text-red-600">{error}</span>}
             </div>
             <div className="flex gap-2">
-              {onArchive && !effectiveDisabled && (
+              {onArchive && editMode && (
                 <Button
                   type="button"
                   variant="destructive"
@@ -219,7 +337,7 @@ export default function ItemDetailClient({
                   Archive
                 </Button>
               )}
-              {!effectiveDisabled && (
+              {editMode && (
                 <Button
                   type="submit"
                   size="sm"
