@@ -1,6 +1,6 @@
 // Items table schema (feature-local, domain layer).
 // Constraints: only Drizzle pg-core helpers & pure utilities. No React/Next/UI.
-// To add new feature schemas: create app/<feature>/domain/schema.ts and export via lib/db/schema.ts aggregator.
+// To add new feature schemas: create app/<feature>/schema.ts and export via lib/db/schema.ts aggregator.
 
 import { pgTable, bigint, text, pgEnum, numeric, boolean } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';

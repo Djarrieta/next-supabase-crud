@@ -1,6 +1,6 @@
 // Persons table schema (feature-local, domain layer).
-// Mirrors items but simplified: name, status, tags (array of person_tag ids), optional components (self refs) for hierarchical relationships.
-// Only Drizzle pg-core helpers & pure utilities. No React/Next/UI.
+// Constraints: only Drizzle pg-core helpers & pure utilities. No React/Next/UI.
+// To add new feature schemas: create app/<feature>/schema.ts and export via lib/db/schema.ts aggregator.
 
 import { pgTable, bigint, text, pgEnum } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
