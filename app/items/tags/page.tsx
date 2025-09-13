@@ -102,5 +102,3 @@ export default async function ItemTagsPage({
     />
   );
 }
-
-// Removed inline wrapper: passing server actions directly to client dialog component.

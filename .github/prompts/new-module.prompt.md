@@ -84,7 +84,7 @@ STEPS (produce as checklist markdown):
 8. Update lib/db/schema.ts to export the new table + related types.
 9. (Optional) If tags included and you want a dedicated tag catalog, instruct follow-up similar to itemTags module.
 10. Run migration commands: bun drizzle:generate && bun drizzle:push
-11. Add seed support: append an idempotent seeding function for the new table to scripts/seed.ts and run: bun drizzle:seed
+11. Add seed support: create a new file scripts/seed/<plural_lower>.ts exporting seed<PascalPlural>() and import + invoke it from scripts/seed/index.ts (entrypoint). Then run: bun drizzle:seed
 
 PARSING FIELDS
 For each field spec name:type[:options]
@@ -150,25 +150,28 @@ Return only markdown; no extra explanation outside spec.
 If user input insufficient, make reasonable assumptions and list them under Notes.
 
 SEEDING RULES & CONTEXT (INCLUDE IN GENERATED OUTPUT):
-The existing seed file orchestrates inserting baseline lookup rows and bulk demo data. For a NEW MODULE you must:
+The existing seed entrypoint (scripts/seed/index.ts) imports per-domain seed helpers (e.g. items.ts, persons.ts) and orchestrates inserting baseline lookup rows and bulk demo data. For a NEW MODULE you must:
 
-1. Create an async function seed<PascalPlural>() in scripts/seed.ts. Example: seedCustomers, seedOrders.
+1. Create an async function seed<PascalPlural>() in a new file: scripts/seed/<plural_lower>.ts (preferred) OR directly in scripts/seed/index.ts (fallback). Example: scripts/seed/customers.ts exporting seedCustomers.
 2. Ensure idempotency: either check if any row exists before inserting OR use a WHERE NOT EXISTS pattern / ON CONFLICT DO NOTHING (if unique constraints defined). In Drizzle you can early-return after a count/select.
 3. Limit volume by default (e.g., 25–100 rows) but parameterize a 'total' argument with a sensible default.
 4. Return inserted (or existing) primary keys so later seed steps could reference them.
-5. Append invocation to main() in scripts/seed.ts in a clearly marked section (// New module seeds) after core dependencies (e.g., tags) are present.
+5. Import and append the invocation to main() in scripts/seed/index.ts in a clearly marked section (// New module seeds) after core dependencies (e.g., tags) are present.
 6. If module uses tags/components arrays, ensure those dependencies are seeded first; pass resolved foreign key ids / tag ids into your generator.
 7. KEEP seed functions deterministic when possible (e.g., sequential naming) but you may vary a couple fields for realism.
-8. Document in the generated output EXACT diff to add to scripts/seed.ts:
-   - Function definition
-   - Call site inside main()
+8. Document in the generated output EXACT diff to add to scripts/seed/index.ts:
+
+- New seed file path & contents
+- Import statement
+- Call site inside main()
+
 9. Provide a rerun workflow: to reset only this module's data, explain optional manual deletion (truncate table) then call its seed function.
-10. Note performance considerations for large totals (batch inserts vs individual inserts; prefer single insert(values[...]))
+10. Note performance considerations for large totals (batch inserts vs individual inserts; prefer single insert(values[...])))
 
 Example pattern to emulate (adjust names):
 
 ```ts
-// In scripts/seed.ts
+// In scripts/seed/customers.ts
 export async function seedCustomers(total = 25) {
   const db = getDb();
   const existing = await db
@@ -188,7 +191,8 @@ export async function seedCustomers(total = 25) {
     .values(rows)
     .returning({ id: customers.id });
 }
-// Inside main():
+// Inside scripts/seed/index.ts main():
+import { seedCustomers } from "./customers";
 await seedCustomers(50);
 ```
 

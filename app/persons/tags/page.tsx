@@ -1,19 +1,18 @@
+import { MAX_PAGE_SIZE } from "@/app/constants";
 import Breadcrumb from "@/components/breadcrumb";
+import {
+  createPageHrefBuilder,
+  parsePagination,
+} from "@/components/pagination-server";
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
-import { Tag } from "@/components/ui/tag";
 import {
   createPersonTag,
   deletePersonTag,
   listPersonTags,
   updatePersonTag,
 } from "./actions";
-import { MAX_PAGE_SIZE } from "@/app/constants";
-import {
-  parsePagination,
-  createPageHrefBuilder,
-} from "@/components/pagination-server";
 import AddPersonTagDialog from "./add-person-tag-dialog";
 
 export const revalidate = 0;
