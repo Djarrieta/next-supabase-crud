@@ -84,7 +84,7 @@ export function TableTemplate<T extends { id: string | number }>(
     const hasNext = page < totalPages;
     const baseCls = "px-3 py-1 rounded border text-sm";
     return (
-      <div className="flex items-center gap-3 justify-end w-full py-2">
+      <div className="flex flex-wrap items-center gap-3 justify-end w-full py-2">
         {hasPrev ? (
           <Link
             prefetch={false}
@@ -102,6 +102,7 @@ export function TableTemplate<T extends { id: string | number }>(
         <span className="text-sm text-muted-foreground">
           Page {page} of {totalPages}
         </span>
+
         {hasNext ? (
           <Link
             prefetch={false}
@@ -116,6 +117,32 @@ export function TableTemplate<T extends { id: string | number }>(
             Next
           </span>
         )}
+
+        <form
+          action={makePageHref(1)}
+          className="flex items-center gap-1 text-sm"
+          aria-label="Jump to page form"
+        >
+          <label className="sr-only" htmlFor={`jump-page-input-${title}`}>
+            Jump to page
+          </label>
+          <input
+            id={`jump-page-input-${title}`}
+            type="number"
+            name="page"
+            min={1}
+            max={totalPages}
+            defaultValue={page}
+            className="w-16 px-2 py-1 border rounded bg-background"
+            aria-describedby={`jump-page-total-${title}`}
+          />
+          <button type="submit" className={baseCls} aria-label="Go to page">
+            Go
+          </button>
+          <span id={`jump-page-total-${title}`} className="sr-only">
+            of {totalPages} pages
+          </span>
+        </form>
       </div>
     );
   }
