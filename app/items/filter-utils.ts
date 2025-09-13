@@ -22,6 +22,11 @@ export function parseSearchParamsToTokens(sp: URLSearchParams): FilterToken[] {
       }
     });
   }
+  // Inject default status:active if user did not specify any status-like token
+  const hasStatus = tokens.some(t => t.key === 'status');
+  if (!hasStatus) {
+    tokens.push({ key: 'status', value: 'active' });
+  }
   return tokens;
 }
 
@@ -34,7 +39,8 @@ export function tokensToSearchParams(tokens: FilterToken[]): URLSearchParams {
   const tags = tokens.filter(t => t.key === 'tag').map(t => t.value);
   if (tags.length) sp.set('tags', Array.from(new Set(tags)).join(','));
   const status = tokens.find(t => t.key === 'status');
-  if (status) sp.set('status', status.value);
+  // Omit status=active from query params to keep URL clean (active is default)
+  if (status && status.value !== 'active') sp.set('status', status.value);
   const unique = tokens.find(t => t.key === 'unique');
   if (unique) sp.set('unique', unique.value);
   return sp;

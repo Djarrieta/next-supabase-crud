@@ -28,40 +28,42 @@ export default function ItemsFilterInput({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 flex-wrap min-h-9 px-2 py-1 rounded border bg-background text-xs",
+        "flex flex-col gap-1 rounded border bg-background text-xs px-2 py-1 min-w-[400px]",
         className
       )}
     >
-      {/* Existing selected tokens */}
-      {tokens.map((t, i) => (
-        <button
-          key={i}
-          type="button"
-          onClick={() => removeAt(i)}
-          className="flex items-center gap-1 rounded bg-muted px-2 py-0.5 hover:bg-muted/70"
-        >
-          <span className="font-medium">{t.key}:</span>
-          <span className="truncate max-w-[120px]">{t.value}</span>
-          <span className="text-muted-foreground">×</span>
-        </button>
-      ))}
-
-      <input
-        ref={inputRef}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            commit(input);
-          } else if (e.key === "Backspace" && !input && tokens.length) {
-            removeAt(tokens.length - 1);
-          }
-        }}
-        className="flex-1 min-w-[140px] bg-transparent outline-none placeholder:text-muted-foreground"
-        placeholder="Type and press Enter (e.g. name:chair tag:2 unique:true)"
-      />
-      <div className="ml-auto flex items-center gap-1">
+      {/* Top row: tokens + input */}
+      <div className="flex items-center gap-2 flex-wrap max-h-20 overflow-y-auto pr-1">
+        {tokens.map((t, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => removeAt(i)}
+            className="flex items-center gap-1 rounded bg-muted px-2 py-0.5 hover:bg-muted/70"
+          >
+            <span className="font-medium">{t.key}:</span>
+            <span className="truncate max-w-[120px]">{t.value}</span>
+            <span className="text-muted-foreground">×</span>
+          </button>
+        ))}
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit(input);
+            } else if (e.key === "Backspace" && !input && tokens.length) {
+              removeAt(tokens.length - 1);
+            }
+          }}
+          className="flex-1 min-w-[200px] bg-transparent outline-none placeholder:text-muted-foreground"
+          placeholder="Type filter then Enter (id:5 tag:2 unique:true)"
+        />
+      </div>
+      {/* Bottom row: actions always fixed below */}
+      <div className="flex justify-end gap-1 border-t pt-1">
         <button
           type="button"
           onClick={() => commit(input)}
