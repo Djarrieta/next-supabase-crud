@@ -43,6 +43,7 @@ export interface MultiSelectProps
   maxRenderedNotice?: number;
   /** Limit number of chips shown before summarizing */
   chipDisplayLimit?: number;
+  disabled?: boolean; // disable interactions
 }
 
 const baseLabelClasses =
@@ -72,6 +73,7 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(
       maxRenderedNotice = 5000,
       chipDisplayLimit = 20,
       className,
+      disabled = false,
       ...rest
     },
     ref
@@ -109,6 +111,7 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(
     );
 
     const toggle = (val: string | number) => {
+      if (disabled) return;
       setSelection(
         current.includes(val)
           ? current.filter((v) => v !== val)
@@ -116,8 +119,9 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(
       );
     };
 
-    const clearAll = () => setSelection([]);
+    const clearAll = () => !disabled && setSelection([]);
     const selectAllFiltered = () =>
+      !disabled &&
       setSelection([
         ...new Set([
           ...current,
@@ -150,6 +154,7 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(
                     chipClassName
                   )}
                   aria-label={`Remove ${opt.label}`}
+                  disabled={disabled}
                 >
                   <span className="truncate max-w-[140px]">{opt.label}</span>
                   <span className="text-muted-foreground group-hover:text-foreground">
@@ -167,6 +172,7 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(
               type="button"
               onClick={clearAll}
               className="text-[10px] underline text-muted-foreground hover:text-foreground ml-1"
+              disabled={disabled}
             >
               Clear
             </button>
@@ -184,16 +190,19 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(
             placeholder={placeholder}
             value={query}
             onChange={(e) => {
-              setQuery(e.target.value);
-              setScrollTop(0);
+              if (!disabled) {
+                setQuery(e.target.value);
+                setScrollTop(0);
+              }
             }}
             aria-label="Filter options"
+            disabled={disabled}
           />
           <button
             type="button"
             onClick={selectAllFiltered}
             className="rounded border px-2 text-[10px] hover:bg-accent disabled:opacity-40"
-            disabled={filtered.length === 0}
+            disabled={filtered.length === 0 || disabled}
             title="Select all filtered"
           >
             All
@@ -233,13 +242,14 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(
                       className={cn(
                         "flex cursor-pointer items-center gap-2 px-2 hover:bg-accent/40",
                         checked ? "bg-accent/60" : "",
-                        o.disabled && "opacity-50 cursor-not-allowed"
+                        (o.disabled || disabled) &&
+                          "opacity-50 cursor-not-allowed"
                       )}
                     >
                       <input
                         type="checkbox"
                         className="h-3 w-3"
-                        disabled={o.disabled}
+                        disabled={o.disabled || disabled}
                         checked={checked}
                         onChange={() => toggle(o.value)}
                       />

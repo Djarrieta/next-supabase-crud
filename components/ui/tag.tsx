@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 
-export type TagVariant = "success" | "warning" | "error" | "default";
+export type TagVariant = "success" | "warning" | "error" | "info" | "default";
 
 export interface TagProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: TagVariant;
@@ -20,7 +20,7 @@ const variantClasses: Record<TagVariant, string> = {
   warning:
     "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   error: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-
+  info: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   default: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
 };
 
@@ -95,6 +95,7 @@ export interface TagGroupProps {
   groupClassName?: string; // flex container
   tagClassName?: string; // passed to each Tag wrapper
   tagInputClassName?: string; // passed to each Tag input
+  disabled?: boolean; // disable whole group
 }
 
 export const TagGroup = forwardRef<HTMLDivElement, TagGroupProps>(
@@ -111,6 +112,7 @@ export const TagGroup = forwardRef<HTMLDivElement, TagGroupProps>(
       groupClassName,
       tagClassName,
       tagInputClassName,
+      disabled = false,
     },
     ref
   ) => {
@@ -147,9 +149,11 @@ export const TagGroup = forwardRef<HTMLDivElement, TagGroupProps>(
                 key={opt.value}
                 name={name}
                 value={opt.value}
-                disabled={opt.disabled}
+                disabled={disabled || opt.disabled}
                 checked={checked}
-                onChange={(e) => toggle(opt.value, e.target.checked)}
+                onChange={(e) =>
+                  !disabled && toggle(opt.value, e.target.checked)
+                }
                 className={tagClassName}
                 inputClassName={tagInputClassName}
               >

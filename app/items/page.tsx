@@ -4,7 +4,8 @@ import StatusFilter from "@/components/status-filter";
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
-import { Tag, TagVariant } from "@/components/ui/tag";
+import { TagVariant } from "@/components/ui/tag";
+import Badges from "@/components/badges";
 import { createItem, deleteItem, listItems, updateItem } from "./actions";
 import { ViewIcon } from "@/components/icons";
 import Link from "next/link";
@@ -80,30 +81,16 @@ export default async function ItemsPage({
       cell: (row) => (
         <div className="flex flex-col">
           <span>{row.description ?? ""}</span>
-          <div className="flex flex-wrap gap-1 pt-1">
-            {(() => {
-              const variantMap: Record<string, TagVariant> = {
-                active: "success",
-                inactive: "warning",
-                archived: "error",
-              };
-
-              const variant = variantMap[row.status] ?? "default";
-              return <Tag variant={variant}>{row.status}</Tag>;
-            })()}
-            {Array.isArray((row as any).components) &&
-              (row as any).components.length > 0 && (
-                <Tag variant="warning">
-                  {(row as any).components.length} comps
-                </Tag>
-              )}
-            {Array.isArray((row as any).tags) &&
-              ((row as any).tags as { id: number; name: string }[]).map((t) => (
-                <Tag key={t.id} variant="default">
-                  {t.name}
-                </Tag>
-              ))}
-          </div>
+          <Badges
+            status={row.status as string}
+            componentsCount={
+              Array.isArray((row as any).components)
+                ? (row as any).components.length
+                : 0
+            }
+            tags={Array.isArray((row as any).tags) ? (row as any).tags : []}
+            className="pt-1"
+          />
         </div>
       ),
     },

@@ -1,16 +1,14 @@
-import Breadcrumb from "@/components/breadcrumb";
-import InlineItemForm from "./inline-item-form";
 import {
+  deleteItem,
   getItem,
   listItems as listItemsAction,
   updateItem,
-  deleteItem,
 } from "@/app/items/actions";
 import { listAllItemTags } from "@/app/items/tags/actions";
-import { Tag } from "@/components/ui/tag";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import Breadcrumb from "@/components/breadcrumb";
 import { Item } from "@/lib/db/schema";
+import { notFound } from "next/navigation";
+import ItemDetailClient from "./item-detail-client";
 
 export const revalidate = 0; // always fresh
 
@@ -65,35 +63,21 @@ export default async function ItemDetailPage({ params }: Props) {
           { label: `Item ${id}` },
         ]}
       />
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Item {id}</h1>
-          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-            Edit attributes, adjust tags & components directly below. Changes
-            save to the database.
-          </p>
-        </div>
-        <div className="rounded border p-4">
-          <h2 className="font-medium text-sm uppercase tracking-wide text-muted-foreground mb-2">
-            Edit Item
-          </h2>
-          <InlineItemForm
-            initial={{
-              id,
-              description: itemData?.description || "",
-              status: (itemData as any).status,
-              sellPrice: Number(itemData?.sellPrice || 0),
-              unique: Boolean(itemData?.unique),
-              tagNames: ((itemData as any).tags || []).map((t: any) => t.name),
-              components: (itemData as any).components || [],
-            }}
-            availableTags={allTags}
-            availableComponents={componentCandidates}
-            onSubmit={updateItem}
-            onArchive={deleteItem}
-          />
-        </div>
-      </div>
+      <ItemDetailClient
+        initial={{
+          id,
+          description: itemData?.description || "",
+          status: (itemData as any).status,
+          sellPrice: Number(itemData?.sellPrice || 0),
+          unique: Boolean(itemData?.unique),
+          tagNames: ((itemData as any).tags || []).map((t: any) => t.name),
+          components: (itemData as any).components || [],
+        }}
+        availableTags={allTags}
+        availableComponents={componentCandidates}
+        onSubmit={updateItem}
+        onArchive={deleteItem}
+      />
     </div>
   );
 }
