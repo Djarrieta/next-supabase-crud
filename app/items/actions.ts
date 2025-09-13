@@ -4,8 +4,7 @@
 
 "use server";
 import { revalidatePath } from "next/cache";
-import { getItemsService } from "@/app/items/service";
-import type { ItemStatus } from '@/lib/db/schema';
+import { getItemsService, ItemsListFilters } from "@/app/items/service";
 
 export async function createItem(formData: FormData) {
   try {
@@ -41,9 +40,9 @@ export async function deleteItem(formData: FormData) {
   if (id) revalidatePath(`/items/${id}`);
 }
 
-export async function listItems(statusFilter: ItemStatus | 'all', page: number, pageSize: number) {
+export async function listItems(filters: ItemsListFilters, page: number, pageSize: number) {
   try {
-    return await getItemsService().list(statusFilter, page, pageSize);
+    return await getItemsService().list(filters, page, pageSize);
   } catch (e) {
     console.error("listItems failed:", e);
     throw e;

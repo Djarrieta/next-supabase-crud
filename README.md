@@ -49,6 +49,41 @@ bun run dev
 - Only a simple read (list) is implemented.
 - Add more shadcn components by installing the CLI (optional): `bunx shadcn-ui add button`.
 
+### Advanced Item Filtering
+
+The Items page now uses a single token-based input (no separate status dropdown) for all filtering. Combine any of:
+
+Supported criteria:
+
+- Status: `status:active | status:inactive | status:archived | status:all` (omit for no status constraint)
+- IDs (exact match, multiple): `id:42 id:100` or `?ids=42,100`
+- Name substring (case-insensitive, space joins -> AND-ish via single combined string): `name:wrench` or just typing a bare word (e.g. `wrench`)
+- Tags (by numeric id, AND semantics = item must contain all): `tag:3 tag:9` or `?tags=3,9`
+- Unique flag: `unique:true` or `unique:false` (also accepts t/1/yes / f/0/no variants in token param parsing)
+
+URL parameter equivalents (can be mixed):
+
+```
+/items?status=inactive&ids=1,5,9&q=wrench%20steel&tags=3,4&unique=true
+```
+
+Token input examples (space separated tokens):
+
+```
+id:15 tag:3 tag:4 unique:true status:inactive name:wrench
+```
+
+Typing a plain number becomes `id:<number>`. Typing a plain word becomes a `name:` token. Press Enter (or click Add) to commit a token, then Apply to update the URL & results. Reset clears all filters.
+
+Notes:
+
+- Multiple `id:` tokens are OR'ed.
+- Multiple `tag:` tokens require the item to contain all specified tag ids (AND).
+- Name tokens are concatenated into a single substring match (combined with spaces).
+- Omitting status leaves it unconstrained; use `status:all` only when you explicitly want everything including archived and inactive (if your service logic distinguishes them). Use a specific status to narrow results.
+
+This design keeps URLs shareable & bookmarkable while allowing quick ad‑hoc filtering without modal dialogs.
+
 ## Drizzle ORM
 
 This project includes Drizzle for managing schema & migrations locally against your Supabase Postgres database.

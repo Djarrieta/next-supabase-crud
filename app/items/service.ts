@@ -6,15 +6,23 @@
 //  - Repository: Drizzle (if DB env vars) else Supabase client
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getDb, Item, items, ItemStatus, ITEM_STATUS_VALUES, itemTags } from '@/lib/db/client';
-import { eq, sql, inArray } from 'drizzle-orm';
+import { and, eq, ilike, inArray, sql } from 'drizzle-orm';
 import { ItemStatusFilter } from '@/app/items/schema';
 
 export interface ItemUpdate { name?: string; description?: string; status?: ItemStatus; sellPrice?: number; purchasePrice?: number; rentPrice?: number; unique?: boolean; tagNames?: string[]; componentIds?: number[] }
 export interface PaginatedResult<T> { rows: T[]; total: number; page: number; pageSize: number }
+export interface ItemsListFilters {
+  status?: ItemStatusFilter; // 'all' means ignore
+  ids?: number[]; // list of ids (OR)
+  nameQuery?: string; // substring (case-insensitive)
+  tagIds?: number[]; // must contain ALL of these tag ids (AND semantics)
+  unique?: boolean; // true / false filter
+}
+
 export interface ItemRepository {
   create(name: string, description: string, sellPrice: number, purchasePrice: number, rentPrice: number, unique: boolean, tagNames: string[], componentIds: number[]): Promise<void>;
   update(id: number, update: ItemUpdate): Promise<void>;
-  list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>>;
+  list(filters: ItemsListFilters, page: number, pageSize: number): Promise<PaginatedResult<Item>>;
   get(id: number): Promise<Item | null>;
 }
 
@@ -104,16 +112,31 @@ class DrizzleItemRepository implements ItemRepository {
       if (Object.keys(updateData).length) await tx.update(items).set(updateData).where(eq(items.id, id));
     });
   }
-  async list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
+  async list(filters: ItemsListFilters, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
     const db = getDb();
     const offset = (page - 1) * pageSize;
-    const countQuery = statusFilter === 'all'
-      ? db.select({ value: sql<number>`count(*)` }).from(items)
-      : db.select({ value: sql<number>`count(*)` }).from(items).where(eq(items.status, statusFilter));
+    const whereClauses: any[] = [];
+    if (filters.status && filters.status !== 'all') whereClauses.push(eq(items.status, filters.status));
+    if (filters.ids && filters.ids.length) whereClauses.push(inArray(items.id, filters.ids));
+    if (filters.nameQuery) {
+      // ILIKE %query%
+      whereClauses.push(ilike(items.name, `%${filters.nameQuery}%`));
+    }
+    if (filters.unique !== undefined) whereClauses.push(eq(items.unique, filters.unique));
+    // Tag AND filter: for each tag id require tags array contains it ( @> ARRAY[tag] )
+    if (filters.tagIds && filters.tagIds.length) {
+      for (const tid of filters.tagIds) {
+        whereClauses.push(sql`${items.tags} @> ARRAY[${tid}]::bigint[]`);
+      }
+    }
+    const whereExpr = whereClauses.length ? and(...whereClauses) : undefined;
+    const countQuery = whereExpr
+      ? db.select({ value: sql<number>`count(*)` }).from(items).where(whereExpr)
+      : db.select({ value: sql<number>`count(*)` }).from(items);
     const [{ value: total }] = await countQuery;
-    const baseRows = await (statusFilter === 'all'
-      ? db.select().from(items).orderBy(items.id).limit(pageSize).offset(offset)
-      : db.select().from(items).where(eq(items.status, statusFilter)).orderBy(items.id).limit(pageSize).offset(offset));
+    const baseRows = whereExpr
+      ? await db.select().from(items).where(whereExpr).orderBy(items.id).limit(pageSize).offset(offset)
+      : await db.select().from(items).orderBy(items.id).limit(pageSize).offset(offset);
     // Collect all tag ids referenced
     const allTagIds = Array.from(new Set(baseRows.flatMap(r => (r as any).tags as number[] || [])));
     const tagMapById = new Map<number, { id: number; name: string }>();
@@ -253,19 +276,28 @@ class SupabaseItemRepository implements ItemRepository {
       if (error) throw error;
     }
   }
-  async list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
+  async list(filters: ItemsListFilters, page: number, pageSize: number): Promise<PaginatedResult<Item>> {
     const supabase = getSupabaseClient();
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     let query = supabase
       .from('items')
-  .select('id, name, description, status, sell_price, purchase_price, rent_price, unique, tags', { count: 'exact' })
+      .select('id, name, description, status, sell_price, purchase_price, rent_price, unique, tags, components', { count: 'exact' })
       .order('id')
       .range(from, to);
-    if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+    if (filters.status && filters.status !== 'all') query = query.eq('status', filters.status);
+    if (filters.ids && filters.ids.length) query = query.in('id', filters.ids);
+    if (filters.unique !== undefined) query = query.eq('unique', filters.unique);
+    // Supabase text search: use ilike on name
+    if (filters.nameQuery) query = query.ilike('name', `%${filters.nameQuery}%`);
+    // Tag AND filtering: we have an array column. Supabase supports 'cs' (contains) for a whole set; for AND we can chain .contains for each tag id.
+    if (filters.tagIds && filters.tagIds.length) {
+      // If multiple tags, ensure array contains all -> use .contains with the full array (works as AND)
+      query = query.contains('tags', filters.tagIds);
+    }
     const { data, error, count } = await query;
     if (error) throw error;
-  const itemsData = (data || []);
+    const itemsData = (data || []);
     const allTagIds = Array.from(new Set(itemsData.flatMap(r => ((r as any).tags as number[]) || [])));
     const tagMapById = new Map<number, { id: number; name: string }>();
     if (allTagIds.length) {
@@ -370,12 +402,17 @@ export class ItemsService {
     const id = this.extractId(formData);
     await this.repo.update(id, { status: 'archived' });
   }
-  async list(statusFilter: ItemStatusFilter, page: number, pageSize: number) {
-    const allowed: ItemStatusFilter[] = ['active', 'inactive', 'archived', 'all'];
-    const filter: ItemStatusFilter = allowed.includes(statusFilter) ? statusFilter : 'active';
+  async list(filters: ItemsListFilters, page: number, pageSize: number) {
+    // Sanitize
+    const allowedStatus: ItemStatusFilter[] = ['active', 'inactive', 'archived', 'all'];
+    const status = filters.status && allowedStatus.includes(filters.status) ? filters.status : filters.status ? 'active' : undefined;
+    const ids = (filters.ids || []).filter(v => Number.isInteger(v) && v > 0);
+    const nameQuery = (filters.nameQuery || '').trim() || undefined;
+    const unique = filters.unique;
+    const tagIds = (filters.tagIds || []).filter(v => Number.isInteger(v) && v > 0);
     const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
     const safePageSize = Number.isFinite(pageSize) && pageSize > 0 && pageSize <= 100 ? Math.floor(pageSize) : 10;
-    return this.repo.list(filter, safePage, safePageSize);
+    return this.repo.list({ status, ids, nameQuery, unique, tagIds }, safePage, safePageSize);
   }
   async get(id: number) {
     if (!id || Number.isNaN(id)) throw new Error('Invalid item id');

@@ -2,18 +2,20 @@ import { MAX_PAGE_SIZE } from "@/app/constants";
 import Badges from "@/components/badges";
 import Breadcrumb from "@/components/breadcrumb";
 import { ViewIcon } from "@/components/icons";
+import ItemsFilterInput from "@/components/items-filter-input";
 import {
   createPageHrefBuilder,
   parsePagination,
 } from "@/components/pagination-server";
-import StatusFilter from "@/components/status-filter";
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
 import Link from "next/link";
 import { createItem, listItems } from "./actions";
 import AddItemDialog from "./add-item-dialog";
-import { Item, ItemStatusFilter } from "./schema";
+import { parseSearchParamsToFilters } from "./filter-utils";
+import { Item } from "./schema";
+import { ItemsListFilters } from "./service";
 import { listAllItemTags } from "./tags/actions";
 
 export const revalidate = 0; // always fresh
@@ -29,15 +31,13 @@ export default async function ItemsPage({
   let total = 0;
   let page = 1;
   let pageSize = MAX_PAGE_SIZE;
-  // Derive status filter from search params. Default to 'active'. Acceptable values: active | inactive | all
-  const raw = searchParams?.status;
-  const statusParam = Array.isArray(raw) ? raw[0] : raw;
-  const statusAllowed: ItemStatusFilter[] = ["active", "inactive", "all"];
-  const statusFilter: ItemStatusFilter = statusAllowed.includes(
-    statusParam as ItemStatusFilter
-  )
-    ? (statusParam as ItemStatusFilter)
-    : "active";
+  const filters: ItemsListFilters = parseSearchParamsToFilters(
+    new URLSearchParams(
+      Object.entries(searchParams || {}).flatMap(([k, v]) =>
+        Array.isArray(v) ? v.map((iv) => [k, iv]) : [[k, v]]
+      ) as any
+    )
+  );
   // pagination params
   ({ page, pageSize } = parsePagination({
     searchParams,
@@ -46,7 +46,7 @@ export default async function ItemsPage({
   }));
   try {
     const [itemsResult, tagCatalog] = await Promise.all([
-      listItems(statusFilter, page, pageSize),
+      listItems(filters, page, pageSize),
       // fetch entire tag catalog (no pagination)
       listAllItemTags(),
     ]);
@@ -112,11 +112,20 @@ export default async function ItemsPage({
     },
   ];
 
+  // Build base extra params preserving filters (omit defaults / empty)
+  const extraParams: Record<string, any> = {};
+  if (filters.status) extraParams.status = filters.status;
+  if (filters.ids && filters.ids.length)
+    extraParams.ids = filters.ids.join(",");
+  if (filters.nameQuery) extraParams.q = filters.nameQuery;
+  if (filters.tagIds && filters.tagIds.length)
+    extraParams.tags = filters.tagIds.join(",");
+  if (filters.unique !== undefined)
+    extraParams.unique = filters.unique ? "true" : "false";
   const makePageHref = createPageHrefBuilder("/items", {
     pageSize,
     defaultPageSize: MAX_PAGE_SIZE,
-    extraParams:
-      statusFilter !== "active" ? { status: statusFilter } : undefined,
+    extraParams: Object.keys(extraParams).length ? extraParams : undefined,
   });
 
   return (
@@ -142,7 +151,7 @@ export default async function ItemsPage({
           availableComponents={availableComponents}
         />
       }
-      controlsEnd={<StatusFilter current={statusFilter} />}
+      controlsEnd={<ItemsFilterInput />}
     />
   );
 }
