@@ -108,3 +108,27 @@ The tag system has been refactored from per-item tag rows to a global catalog:
 - UI for managing tags is now independent of items (global list).
 
 Migration `0001_tag_catalog_refactor.sql` reshapes existing data. Previous per-item associations are not automatically backfilled into the new array (since the old linking rows are collapsed by name). Reassign tags to items as needed after migration.
+
+### Breadcrumbs
+
+The project wraps the shadcn/ui breadcrumb primitives with a simple API: `components/breadcrumb.tsx` exposing `<Breadcrumb items={[{ label, href? }, ...]} />`.
+
+Usage example:
+
+```tsx
+<Breadcrumb
+  items={[
+    { label: "Home", href: "/" },
+    { label: "Items", href: "/items" },
+    { label: "Tags" }, // last item (no href) is the current page
+  ]}
+/>
+```
+
+Rules:
+
+- Provide `href` for navigable intermediate crumbs.
+- Omit `href` (or set undefined) for the final crumb to render the current page style.
+- Pass a custom separator via the optional `separator` prop if you don't want the default chevron.
+
+If you later need automatic generation from the current pathname, you can extend the wrapper to derive `items` from `usePathname()` and a label map.

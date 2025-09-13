@@ -13,20 +13,22 @@
     "drizzle:studio": "drizzle-kit studio",
     "drizzle:seed": "bun scripts/seed.ts",
     "db:drop-all": "bun scripts/dropAllTables.ts --force"
-
-    
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-slot": "^1.2.3",
     "@supabase/supabase-js": "^2.45.0",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.44.5",
+    "lucide-react": "^0.544.0",
     "next": "14.2.5",
     "next-themes": "^0.3.0",
     "postgres": "^3.4.4",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "tailwind-merge": "^2.3.0"
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@types/node": "20.12.7",

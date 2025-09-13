@@ -1,52 +1,115 @@
-import React from "react";
-import Link from "next/link";
-import clsx from "clsx";
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { ChevronRight, MoreHorizontal } from "lucide-react"
 
-export interface BreadcrumbItem {
-  label: string;
-  href?: string; // if absent, treated as current page (no link)
-}
+import { cn } from "@/lib/utils"
 
-export interface BreadcrumbProps {
-  items: BreadcrumbItem[];
-  className?: string;
-  separator?: React.ReactNode; // default '/'
-}
+const Breadcrumb = React.forwardRef<
+  HTMLElement,
+  React.ComponentPropsWithoutRef<"nav"> & {
+    separator?: React.ReactNode
+  }
+>(({ ...props }, ref) => <nav ref={ref} aria-label="breadcrumb" {...props} />)
+Breadcrumb.displayName = "Breadcrumb"
 
-// Simple reusable breadcrumb component. Usage:
-// <Breadcrumb items={[{ label: 'Items', href: '/items' }, { label: 'Tags' }]} />
-export function Breadcrumb({
-  items,
-  className,
-  separator = <span>/</span>,
-}: BreadcrumbProps) {
-  if (!items?.length) return null;
+const BreadcrumbList = React.forwardRef<
+  HTMLOListElement,
+  React.ComponentPropsWithoutRef<"ol">
+>(({ className, ...props }, ref) => (
+  <ol
+    ref={ref}
+    className={cn(
+      "flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground sm:gap-2.5",
+      className
+    )}
+    {...props}
+  />
+))
+BreadcrumbList.displayName = "BreadcrumbList"
+
+const BreadcrumbItem = React.forwardRef<
+  HTMLLIElement,
+  React.ComponentPropsWithoutRef<"li">
+>(({ className, ...props }, ref) => (
+  <li
+    ref={ref}
+    className={cn("inline-flex items-center gap-1.5", className)}
+    {...props}
+  />
+))
+BreadcrumbItem.displayName = "BreadcrumbItem"
+
+const BreadcrumbLink = React.forwardRef<
+  HTMLAnchorElement,
+  React.ComponentPropsWithoutRef<"a"> & {
+    asChild?: boolean
+  }
+>(({ asChild, className, ...props }, ref) => {
+  const Comp = asChild ? Slot : "a"
+
   return (
-    <nav aria-label="Breadcrumb">
-      <ol className={clsx("flex items-center gap-2 text-sm", className)}>
-        {items.map((item, idx) => {
-          const isLast = idx === items.length - 1;
-          return (
-            <li key={idx} className="flex items-center gap-2">
-              {item.href && !isLast ? (
-                <Link
-                  href={item.href}
-                  className="hover:underline  dark:text-blue-400"
-                >
-                  {item.label}
-                </Link>
-              ) : (
-                <span className={clsx(isLast && "font-medium")}>
-                  {item.label}
-                </span>
-              )}
-              {!isLast && separator}
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
-  );
-}
+    <Comp
+      ref={ref}
+      className={cn("transition-colors hover:text-foreground", className)}
+      {...props}
+    />
+  )
+})
+BreadcrumbLink.displayName = "BreadcrumbLink"
 
-export default Breadcrumb;
+const BreadcrumbPage = React.forwardRef<
+  HTMLSpanElement,
+  React.ComponentPropsWithoutRef<"span">
+>(({ className, ...props }, ref) => (
+  <span
+    ref={ref}
+    role="link"
+    aria-disabled="true"
+    aria-current="page"
+    className={cn("font-normal text-foreground", className)}
+    {...props}
+  />
+))
+BreadcrumbPage.displayName = "BreadcrumbPage"
+
+const BreadcrumbSeparator = ({
+  children,
+  className,
+  ...props
+}: React.ComponentProps<"li">) => (
+  <li
+    role="presentation"
+    aria-hidden="true"
+    className={cn("[&>svg]:w-3.5 [&>svg]:h-3.5", className)}
+    {...props}
+  >
+    {children ?? <ChevronRight />}
+  </li>
+)
+BreadcrumbSeparator.displayName = "BreadcrumbSeparator"
+
+const BreadcrumbEllipsis = ({
+  className,
+  ...props
+}: React.ComponentProps<"span">) => (
+  <span
+    role="presentation"
+    aria-hidden="true"
+    className={cn("flex h-9 w-9 items-center justify-center", className)}
+    {...props}
+  >
+    <MoreHorizontal className="h-4 w-4" />
+    <span className="sr-only">More</span>
+  </span>
+)
+BreadcrumbEllipsis.displayName = "BreadcrumbElipssis"
+
+export {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  BreadcrumbEllipsis,
+}

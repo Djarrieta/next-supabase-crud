@@ -1,4 +1,4 @@
-import Breadcrumb from "@/components/ui/breadcrumb";
+import Breadcrumb from "@/components/breadcrumb";
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";

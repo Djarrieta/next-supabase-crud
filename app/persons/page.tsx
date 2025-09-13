@@ -1,5 +1,5 @@
 import AddPersonDialog from "./add-person-dialog";
-import Breadcrumb from "@/components/ui/breadcrumb";
+import Breadcrumb from "@/components/breadcrumb";
 import EditPersonDialog from "./edit-person-dialog";
 import StatusFilter from "@/components/status-filter";
 import TableTemplate, {

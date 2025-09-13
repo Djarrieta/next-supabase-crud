@@ -1,5 +1,5 @@
 import AddItemDialog from "./add-item-dialog";
-import Breadcrumb from "@/components/ui/breadcrumb";
+import Breadcrumb from "@/components/breadcrumb";
 import EditItemDialog from "./edit-item-dialog";
 import StatusFilter from "@/components/status-filter";
 import TableTemplate, {
