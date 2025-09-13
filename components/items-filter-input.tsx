@@ -37,16 +37,19 @@ export default function ItemsFilterInput({
       {/* Top row: tokens + input */}
       <div className="flex items-center gap-2 flex-wrap max-h-20 overflow-y-auto pr-1">
         {tokens.map((t, i) => (
-          <button
+          <Button
             key={i}
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => removeAt(i)}
-            className="flex items-center gap-1 rounded bg-muted px-2 py-0.5 hover:bg-muted/70"
+            className="flex items-center gap-1 bg-muted hover:bg-muted/70 px-2 py-0.5 h-auto rounded text-xs"
+            aria-label={`Remove filter ${t.key}:${t.value}`}
           >
             <span className="font-medium">{t.key}:</span>
             <span className="truncate max-w-[120px]">{t.value}</span>
             <span className="text-muted-foreground">×</span>
-          </button>
+          </Button>
         ))}
         <input
           ref={inputRef}

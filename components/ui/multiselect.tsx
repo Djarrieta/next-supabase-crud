@@ -1,5 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   forwardRef,
   HTMLAttributes,
@@ -145,12 +146,14 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(
               const opt = options.find((o) => o.value === v);
               if (!opt) return null;
               return (
-                <button
+                <Button
                   key={v}
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => toggle(v)}
                   className={cn(
-                    "group flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-[10px] hover:bg-muted/70",
+                    "group gap-1 bg-muted hover:bg-muted/70 px-2 py-0.5 h-auto text-[10px] rounded",
                     chipClassName
                   )}
                   aria-label={`Remove ${opt.label}`}
@@ -160,7 +163,7 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(
                   <span className="text-muted-foreground group-hover:text-foreground">
                     ×
                   </span>
-                </button>
+                </Button>
               );
             })}
             {current.length > chipDisplayLimit && (
@@ -168,14 +171,16 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(
                 + {current.length - chipDisplayLimit} more
               </span>
             )}
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={clearAll}
-              className="text-[10px] underline text-muted-foreground hover:text-foreground ml-1"
+              className="h-auto px-1 py-0 text-[10px] underline text-muted-foreground hover:text-foreground ml-1 bg-transparent border-0 shadow-none"
               disabled={disabled}
             >
               Clear
-            </button>
+            </Button>
           </div>
         )}
 
@@ -198,15 +203,17 @@ export const MultiSelect = forwardRef<HTMLDivElement, MultiSelectProps>(
             aria-label="Filter options"
             disabled={disabled}
           />
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={selectAllFiltered}
-            className="rounded border px-2 text-[10px] hover:bg-accent disabled:opacity-40"
+            className="rounded px-2 h-8 text-[10px] hover:bg-accent disabled:opacity-40"
             disabled={filtered.length === 0 || disabled}
             title="Select all filtered"
           >
             All
-          </button>
+          </Button>
         </div>
 
         <div

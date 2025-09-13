@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import clsx from "clsx";
+import { Button } from "@/components/ui/button";
 
 /**
  * Generic column definition for TableTemplatePage
@@ -121,7 +122,9 @@ export function TableTemplate<T extends { id: string | number }>(
         </div>
         {/* Bottom row: jump form */}
         <form
-          action={makePageHref(1)}
+          // Let the browser submit to the current URL; only the 'page' field is sent.
+          // Avoid using makePageHref(1) so we don't lock the base page param or duplicate params.
+          action={undefined}
           className="flex items-center gap-2 justify-end text-sm"
           aria-label="Jump to page form"
         >
@@ -139,9 +142,15 @@ export function TableTemplate<T extends { id: string | number }>(
               className="w-20 px-2 py-1 border rounded bg-background"
               aria-describedby={`jump-page-total-${title}`}
             />
-            <button type="submit" className={baseCls} aria-label="Go to page">
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              className={baseCls}
+              aria-label="Go to page"
+            >
               Go
-            </button>
+            </Button>
           </div>
           <span id={`jump-page-total-${title}`} className="sr-only">
             of {totalPages} pages
