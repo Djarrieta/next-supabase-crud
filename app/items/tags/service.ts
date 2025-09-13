@@ -1,10 +1,12 @@
-// Domain/service layer for itemTags (simple name catalog)
-// Keep pure domain + persistence orchestrations only.
-// Forbidden imports: react, next/* (except server utilities), UI components.
+// Item tags service:
+//  - CRUD tag names (id, name)
+//  - Paginated listing + listAll() full catalog
+//  - Normalizes blank names -> 'unnamed'
+//  - Repository: Drizzle (if DB env vars) else Supabase client
 
+import { getDb, itemTags } from '@/lib/db/client';
 import { getSupabaseClient } from '@/lib/supabaseClient';
-import { getDb, itemTags, items } from '@/lib/db/client';
-import { eq, sql, inArray } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { ItemTagRow } from './schema';
 
 export interface PaginatedResult<T> { rows: T[]; total: number; page: number; pageSize: number }

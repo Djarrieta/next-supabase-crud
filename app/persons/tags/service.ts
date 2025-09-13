@@ -1,7 +1,11 @@
-// Domain/service layer for personTags (simple name catalog)
+// Person tags service:
+//  - CRUD tag names (id, name)
+//  - Paginated listing + listAll() full catalog
+//  - Normalizes blank names -> 'unnamed'
+//  - Repository: Drizzle (if DB env vars) else Supabase client
 
+import { getDb, personTags } from '@/lib/db/client';
 import { getSupabaseClient } from '@/lib/supabaseClient';
-import { getDb, personTags, persons } from '@/lib/db/client';
 import { eq, sql } from 'drizzle-orm';
 import type { PersonTagRow } from './schema';
 

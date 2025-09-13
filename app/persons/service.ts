@@ -1,8 +1,9 @@
-// Domain/service layer for Persons. Inspired by Items service but simplified.
-// Responsibilities:
-//  - Create/update persons with name, status, tags, components
-//  - Resolve tag names -> tag ids (create missing)
-//  - Validate components (no self, existing only, avoid ancestor cycles)
+// Persons service:
+//  - Create / update persons (name, status, tags, components)
+//  - Ensure tags exist (create missing) & prevent component self / cycle refs
+//  - Soft delete via status = 'archived'
+//  - Paginated listing with optional status filter
+//  - Repository: Drizzle (if DB env vars) else Supabase client
 
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getDb, persons, personTags, PersonStatus, PERSON_STATUS_VALUES } from '@/lib/db/client';

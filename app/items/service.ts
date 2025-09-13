@@ -1,4 +1,9 @@
-// Clean implementation (one-to-many: item has many itemTags rows)
+// Items service:
+//  - Create / update items (description, status, sellPrice, unique, tags, components)
+//  - Ensure tags exist (create missing) & prevent component self / cycle refs
+//  - Soft delete via status = 'archived'
+//  - Paginated listing with optional status filter
+//  - Repository: Drizzle (if DB env vars) else Supabase client
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getDb, Item, items, ItemStatus, ITEM_STATUS_VALUES, itemTags } from '@/lib/db/client';
 import { eq, sql, inArray } from 'drizzle-orm';
