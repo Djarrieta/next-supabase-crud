@@ -4,6 +4,7 @@ import { PencilIcon, ViewIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { ITEM_STATUS_VALUES, type ItemStatus } from "@/lib/db/schema";
+import AsyncItemMultiSelect from "@/components/async-item-multiselect";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
@@ -60,6 +61,9 @@ export default function ItemDetailClient({
   const [rentPrice, setRentPrice] = useState<number>(initial.rentPrice);
   const [unique, setUnique] = useState<boolean>(initial.unique);
   const [tagNames, setTagNames] = useState<string[]>(initial.tagNames);
+  const [components, setComponents] = useState<number[]>(
+    initial.components.filter((c) => c !== initial.id)
+  );
   const [isPending, startTransition] = useTransition();
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +78,8 @@ export default function ItemDetailClient({
     fd.set("unique", unique ? "true" : "false");
     fd.append("_tags_present", "1");
     fd.append("_components_present", "1");
+    // ensure existing components state serialized (hidden inputs already emitted by component component but keep for clarity)
+    components.forEach((c) => fd.append("components", String(c)));
     setError(null);
     startTransition(async () => {
       try {
@@ -221,21 +227,12 @@ export default function ItemDetailClient({
                 </div>
               </div>
               <div className="space-y-4">
-                <Form.MultiSelect
+                <AsyncItemMultiSelect
                   name="components"
-                  label="Components (other items)"
-                  initialValue={initial.components.filter(
-                    (c) => c !== initial.id
-                  )}
-                  options={availableComponents
-                    .filter((c) => c.id !== initial.id)
-                    .map((c) => ({
-                      value: c.id,
-                      label: `${c.id} – ${c.description || "Untitled"}`.slice(
-                        0,
-                        60
-                      ),
-                    }))}
+                  label="Components (items)"
+                  itemId={initial.id}
+                  value={components}
+                  onChange={setComponents}
                   disabled={!editMode}
                 />
               </div>

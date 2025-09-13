@@ -57,3 +57,37 @@ export async function getItem(id: number) {
     throw e;
   }
 }
+
+// Lightweight search for item component picking (id or name fragment)
+// Returns up to `limit` items excluding provided ids.
+export async function searchItemsForComponents(query: string, excludeIds: number[] = [], limit = 20) {
+  try {
+    const service = getItemsService();
+    const trimmed = (query || '').trim();
+    const numericId = Number(trimmed);
+    const results: { id: number; name: string; description: string | null }[] = [];
+    const excludeSet = new Set(excludeIds.filter(v => Number.isInteger(v)));
+    // If numeric and valid id, attempt direct fetch first for precision add.
+    if (trimmed && Number.isInteger(numericId) && numericId > 0) {
+      const byId = await service.get(numericId);
+      if (byId && !excludeSet.has(byId.id)) {
+        results.push({ id: byId.id, name: byId.name, description: (byId as any).description || null });
+      }
+    }
+    // Name / substring search (always if have query length >= 1)
+    if (!trimmed || trimmed.length >= 1) {
+      const list = await service.list({ status: 'all', nameQuery: trimmed || undefined }, 1, limit);
+      for (const r of list.rows) {
+        if (excludeSet.has(r.id)) continue;
+        if (!results.find(x => x.id === r.id)) {
+          results.push({ id: r.id, name: r.name, description: (r as any).description || null });
+        }
+        if (results.length >= limit) break;
+      }
+    }
+    return results.slice(0, limit);
+  } catch (e) {
+    console.error('searchItemsForComponents failed:', e);
+    return [] as { id: number; name: string; description: string | null }[];
+  }
+}

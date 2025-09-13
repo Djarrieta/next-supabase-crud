@@ -167,3 +167,28 @@ Rules:
 - Pass a custom separator via the optional `separator` prop if you don't want the default chevron.
 
 If you later need automatic generation from the current pathname, you can extend the wrapper to derive `items` from `usePathname()` and a label map.
+
+### Sub-Components (Async Picker)
+
+Item detail pages now use an async, incremental search component for selecting component (sub) items instead of the previous static multi-select of the first N items.
+
+Key behaviors:
+
+- Type either an item id (number) or part of an item name / description.
+- Debounced server search (250ms) returns up to 25 matches (excludes the current item and already selected component ids).
+- Arrow Up/Down to move highlight; Enter to add the highlighted suggestion.
+- Press Enter when you typed an exact numeric id (and it's not already selected) to optimistically add it even if not yet in suggestions (useful for large datasets / slow networks).
+- Click a chip to remove a selected component id.
+- Hidden `<input name="components" value="<id>" />` fields are emitted for form submission; server logic already handles cycle prevention & validation.
+
+Implementation notes:
+
+- Component: `components/async-item-multiselect.tsx`.
+- Server action: `searchItemsForComponents` in `app/items/actions.ts` (reuses existing service list logic; no schema changes required since components are stored as a bigint[] self-reference on `items`).
+- Accessible: list is a button list; highlight + scroll-into-view; Escape closes.
+
+Future enhancements (not yet implemented):
+
+- Loading/error states per suggestion row.
+- Keyboard remove (e.g. Backspace on empty query to pop last).
+- Option to display names alongside ids in the read-only view.
