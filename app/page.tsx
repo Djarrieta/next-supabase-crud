@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ItemsIcon, PlaceholderIcon } from "@/components/icons";
+import { ItemsIcon, PersonsIcon, PlaceholderIcon } from "@/components/icons";
 import Breadcrumb from "@/components/ui/breadcrumb";
 
 export default function HomePage() {
@@ -16,10 +16,10 @@ export default function HomePage() {
       icon: <ItemsIcon className="w-6 h-6" />,
     },
     {
-      href: "#",
-      label: "(Future)",
-      description: "Placeholder for upcoming module.",
-      icon: <PlaceholderIcon className="w-6 h-6" />,
+      href: "/persons",
+      label: "Persons",
+      description: "Manage people with tags and component links.",
+      icon: <PersonsIcon className="w-6 h-6" />,
     },
   ];
   return (

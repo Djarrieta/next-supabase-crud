@@ -72,7 +72,7 @@ STEPS (produce as checklist markdown):
 1. Create folder app/<plural_lower>/
 2. Add schema.ts with pgTable definition including:
    - id bigint identity primary key
-   - status enum (generate new enum if name differs from existing; enum name pattern: <module_name>\_status)
+   - status enum (generate new enum; enum name pattern: <module_name>\_status)
    - timestamps (optional? only if asked — default omit unless user includes created_at / updated_at fields)
    - requested fields parsed from fields input
    - optional arrays: tags (bigint[]) and components (bigint[]) based on flags
@@ -80,10 +80,11 @@ STEPS (produce as checklist markdown):
 4. Add actions.ts exposing create / update / delete / list server actions + revalidatePath("/<plural_lower>")
 5. Add page.tsx rendering TableTemplate consistent with Items example (copy and adapt columns)
 6. Add add-<module_name>-dialog.tsx and edit-<module_name>-dialog.tsx (adapt from items dialogs; minimal fields form). Include hidden markers \_tags_present / \_components_present if those arrays included.
-7. Update lib/db/schema.ts to export the new table + related types.
-8. (Optional) If tags included and you want a dedicated tag catalog, instruct follow-up similar to itemTags module.
-9. Run migration commands: bun drizzle:generate && bun drizzle:push
-10. Add seed support: append an idempotent seeding function for the new table to scripts/seed.ts and run: bun drizzle:seed
+7. Update dashboard (app/page.tsx) by appending a new card object linking to "/<plural_lower>" (see DASHBOARD UPDATE RULES below).
+8. Update lib/db/schema.ts to export the new table + related types.
+9. (Optional) If tags included and you want a dedicated tag catalog, instruct follow-up similar to itemTags module.
+10. Run migration commands: bun drizzle:generate && bun drizzle:push
+11. Add seed support: append an idempotent seeding function for the new table to scripts/seed.ts and run: bun drizzle:seed
 
 PARSING FIELDS
 For each field spec name:type[:options]
@@ -122,6 +123,19 @@ DIALOGS
 
 - Add form fields for each custom field (excluding id, status auto default on create) + tags/components selectors if included
 - Edit dialog includes status selector (enum values) + optional toggles
+
+DASHBOARD UPDATE RULES (app/page.tsx)
+
+- Append (do not replace) a new object to the `cards` array with shape:
+  {
+  href: "/<plural_lower>",
+  label: "<Plural UI Label>",
+  description: "CRUD for your <plural_lower>.",
+  icon: <<PascalPlural>Icon className="w-6 h-6" /> // or <PlaceholderIcon className="w-6 h-6" /> if no custom icon generated
+  }
+- Ensure import of the chosen icon in `app/page.tsx`. If generating a new icon component, add it under `components/icons.tsx` similar to existing ones.
+- Avoid duplicates: if a card with same `href` already exists, skip adding.
+- Keep existing ordering; new card can be appended at the end.
 
 FINISHING OUTPUT FORMAT
 

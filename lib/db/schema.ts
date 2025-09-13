@@ -9,4 +9,12 @@ export type { Item, NewItem, ItemStatus } from '@/app/items/schema';
 export { itemTags } from '@/app/items/tags/schema';
 export type { ItemTagRow, NewItemTagRow } from '@/app/items/tags/schema';
 
+// persons feature
+export { persons, personStatusEnum, PERSON_STATUS_VALUES } from '@/app/persons/schema';
+export type { Person, NewPerson, PersonStatus } from '@/app/persons/schema';
+
+// personTags feature
+export { personTags } from '@/app/persons/tags/schema';
+export type { PersonTagRow, NewPersonTagRow } from '@/app/persons/tags/schema';
+
 

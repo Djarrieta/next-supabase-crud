@@ -20,6 +20,25 @@ export function ItemsIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+export function PersonsIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="9" cy="9" r="3" />
+      <path d="M15 11a3 3 0 1 0 0-6" />
+      <path d="M4 20c0-3 2-5 5-5s5 2 5 5" />
+      <path d="M14 17c.6-.4 1.3-.7 2-.8 2.7-.4 4.5 1.6 4.5 3.8" />
+    </svg>
+  );
+}
+
 export function PlaceholderIcon({
   className = "w-5 h-5",
 }: {
@@ -42,4 +61,4 @@ export function PlaceholderIcon({
   );
 }
 
-export default { ItemsIcon, PlaceholderIcon };
+export default { ItemsIcon, PersonsIcon, PlaceholderIcon };
