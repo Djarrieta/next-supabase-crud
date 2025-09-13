@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useItemsFilters } from "../app/items/use-items-filters";
 
 export default function ItemsFilterInput({
@@ -11,6 +11,14 @@ export default function ItemsFilterInput({
   const { tokens, addRaw, removeAt, apply, reset } = useItemsFilters();
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Auto‑apply whenever tokens change (debounced slightly to batch rapid edits)
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      apply();
+    }, 150);
+    return () => clearTimeout(handle);
+  }, [tokens, apply]);
 
   const commit = (raw: string) => {
     addRaw(raw);
@@ -24,6 +32,7 @@ export default function ItemsFilterInput({
         className
       )}
     >
+      {/* Existing selected tokens */}
       {tokens.map((t, i) => (
         <button
           key={i}
@@ -36,6 +45,7 @@ export default function ItemsFilterInput({
           <span className="text-muted-foreground">×</span>
         </button>
       ))}
+
       <input
         ref={inputRef}
         value={input}
@@ -49,7 +59,7 @@ export default function ItemsFilterInput({
           }
         }}
         className="flex-1 min-w-[140px] bg-transparent outline-none placeholder:text-muted-foreground"
-        placeholder="Add filter (e.g. id:5 name:foo tag:2 unique:true)"
+        placeholder="Type and press Enter (e.g. name:chair tag:2 unique:true)"
       />
       <div className="ml-auto flex items-center gap-1">
         <button
@@ -58,13 +68,6 @@ export default function ItemsFilterInput({
           className="rounded border px-2 py-0.5 hover:bg-accent"
         >
           Add
-        </button>
-        <button
-          type="button"
-          onClick={apply}
-          className="rounded border px-2 py-0.5 hover:bg-accent"
-        >
-          Apply
         </button>
         <button
           type="button"
