@@ -2,6 +2,8 @@
 import { cn } from "@/lib/utils";
 import { useRef, useState, useEffect } from "react";
 import { useItemsFilters } from "../app/items/use-items-filters";
+import { CloseIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 
 export default function ItemsFilterInput({
   className,
@@ -61,26 +63,20 @@ export default function ItemsFilterInput({
           className="flex-1 min-w-[200px] bg-transparent outline-none placeholder:text-muted-foreground"
           placeholder="Type filter then Enter (id:5 tag:2 unique:true)"
         />
-      </div>
-      {/* Bottom row: actions always fixed below */}
-      <div className="flex justify-end gap-1 border-t pt-1">
-        <button
+        <Button
           type="button"
-          onClick={() => commit(input)}
-          className="rounded border px-2 py-0.5 hover:bg-accent"
-        >
-          Add
-        </button>
-        <button
-          type="button"
+          variant="outline"
+          size="sm"
+          aria-label="Reset filters"
+          title="Reset filters"
           onClick={() => {
             reset();
             setInput("");
           }}
-          className="rounded border px-2 py-0.5 hover:bg-accent"
+          className="p-1 w-7 h-7 px-1 inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
         >
-          Reset
-        </button>
+          <CloseIcon className="w-3.5 h-3.5" />
+        </Button>
       </div>
     </div>
   );
