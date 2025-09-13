@@ -17,10 +17,13 @@ export async function seedItems(itemTags: ItemTagRow[], total: number) {
   const rows: any[] = [];
 
   for (let i = 0; i < total; i++) {
-    const description = `Item--${i + 1}`;
+    const name = `Item ${i + 1}`;
+    const description = `Description--${i + 1}`;
     const status: ItemStatus =
       i === 0 ? "archived" : i === 1 ? "inactive" : "active";
     const sellPrice = (100 + i * 10).toFixed(2);
+  const purchasePrice = (50 + i * 5).toFixed(2);
+    const rentPrice = (10 + i * 2).toFixed(2);
     const unique = i % 7 === 0;
 
     // Tag selection
@@ -45,9 +48,12 @@ export async function seedItems(itemTags: ItemTagRow[], total: number) {
     }
 
     rows.push({
+      name,
       description,
       status,
       sellPrice,
+  purchasePrice,
+      rentPrice,
       unique,
       tags: tagIds,
       components: componentIds,

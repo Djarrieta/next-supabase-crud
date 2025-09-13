@@ -3,7 +3,7 @@ import { seedItemTags, seedItems } from "./items";
 async function main() {
   // Seeds itemTags and items
   const seededItemTags = await seedItemTags(5);
-  await seedItems(seededItemTags, 1000);
+  await seedItems(seededItemTags, 101);
   
 
   console.log("Seed complete.");

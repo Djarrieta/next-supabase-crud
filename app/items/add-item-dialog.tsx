@@ -44,19 +44,42 @@ export default function AddItemDialog({
           }}
         >
           <Form.TextInput
+            name="name"
+            label="Name"
+            placeholder="Item name"
+            maxLength={120}
+            autoFocus
+            required
+          />
+          <Form.TextInput
             name="description"
             label="Description"
             placeholder="New item description"
             maxLength={500}
-            autoFocus
           />
-          <Form.NumberInput
-            name="sellPrice"
-            label="Sell Price"
-            step="0.01"
-            min={0}
-            defaultValue={0}
-          />
+          <div className="grid grid-cols-3 gap-4">
+            <Form.NumberInput
+              name="sellPrice"
+              label="Sell Price"
+              step="0.01"
+              min={0}
+              defaultValue={0}
+            />
+            <Form.NumberInput
+              name="purchasePrice"
+              label="Purchase Price"
+              step="0.01"
+              min={0}
+              defaultValue={0}
+            />
+            <Form.NumberInput
+              name="rentPrice"
+              label="Rent Price"
+              step="0.01"
+              min={0}
+              defaultValue={0}
+            />
+          </div>
           <Form.CheckboxInput name="unique" label="Unique" />
           <Form.Tags
             name="tags"

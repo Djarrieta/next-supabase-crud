@@ -1,21 +1,20 @@
-import AddItemDialog from "./add-item-dialog";
+import { MAX_PAGE_SIZE } from "@/app/constants";
+import Badges from "@/components/badges";
 import Breadcrumb from "@/components/breadcrumb";
+import { ViewIcon } from "@/components/icons";
+import {
+  createPageHrefBuilder,
+  parsePagination,
+} from "@/components/pagination-server";
 import StatusFilter from "@/components/status-filter";
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
-import { TagVariant } from "@/components/ui/tag";
-import Badges from "@/components/badges";
-import { createItem, deleteItem, listItems, updateItem } from "./actions";
-import { ViewIcon } from "@/components/icons";
 import Link from "next/link";
-import { listAllItemTags } from "./tags/actions";
-import { MAX_PAGE_SIZE } from "@/app/constants";
-import {
-  parsePagination,
-  createPageHrefBuilder,
-} from "@/components/pagination-server";
+import { createItem, listItems } from "./actions";
+import AddItemDialog from "./add-item-dialog";
 import { Item, ItemStatusFilter } from "./schema";
+import { listAllItemTags } from "./tags/actions";
 
 export const revalidate = 0; // always fresh
 
@@ -76,11 +75,11 @@ export default async function ItemsPage({
       cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
     },
     {
-      id: "description",
-      header: "Description",
+      id: "name",
+      header: "Name",
       cell: (row) => (
         <div className="flex flex-col">
-          <span>{row.description ?? ""}</span>
+          <span>{row.name ?? ""}</span>
           <Badges
             unique={row.unique}
             status={row.status as string}

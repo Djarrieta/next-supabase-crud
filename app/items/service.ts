@@ -9,17 +9,17 @@ import { getDb, Item, items, ItemStatus, ITEM_STATUS_VALUES, itemTags } from '@/
 import { eq, sql, inArray } from 'drizzle-orm';
 import { ItemStatusFilter } from '@/app/items/schema';
 
-export interface ItemUpdate { description?: string; status?: ItemStatus; sellPrice?: number; unique?: boolean; tagNames?: string[]; componentIds?: number[] }
+export interface ItemUpdate { name?: string; description?: string; status?: ItemStatus; sellPrice?: number; purchasePrice?: number; rentPrice?: number; unique?: boolean; tagNames?: string[]; componentIds?: number[] }
 export interface PaginatedResult<T> { rows: T[]; total: number; page: number; pageSize: number }
 export interface ItemRepository {
-  create(description: string, sellPrice: number, unique: boolean, tagNames: string[], componentIds: number[]): Promise<void>;
+  create(name: string, description: string, sellPrice: number, purchasePrice: number, rentPrice: number, unique: boolean, tagNames: string[], componentIds: number[]): Promise<void>;
   update(id: number, update: ItemUpdate): Promise<void>;
   list(statusFilter: ItemStatusFilter, page: number, pageSize: number): Promise<PaginatedResult<Item>>;
   get(id: number): Promise<Item | null>;
 }
 
 class DrizzleItemRepository implements ItemRepository {
-  async create(description: string, sellPrice: number, unique: boolean, tagNames: string[], componentIds: number[]) {
+  async create(name: string, description: string, sellPrice: number, purchasePrice: number, rentPrice: number, unique: boolean, tagNames: string[], componentIds: number[]) {
     const db = getDb();
     await db.transaction(async (tx) => {
       // Resolve tag names -> ids (create missing)
@@ -43,7 +43,7 @@ class DrizzleItemRepository implements ItemRepository {
         const existing = await tx.select({ id: items.id }).from(items).where(inArray(items.id, Array.from(compSet)));
         finalComponents = existing.map(r => r.id as number);
       }
-      await tx.insert(items).values({ description, sellPrice: sellPrice.toFixed(2), unique, tags: tagIds as any, components: finalComponents as any }).returning({ id: items.id });
+  await tx.insert(items).values({ name, description, sellPrice: sellPrice.toFixed(2), purchasePrice: purchasePrice.toFixed(2), rentPrice: rentPrice.toFixed(2), unique, tags: tagIds as any, components: finalComponents as any }).returning({ id: items.id });
     });
   }
   async update(id: number, update: ItemUpdate) {
@@ -51,9 +51,12 @@ class DrizzleItemRepository implements ItemRepository {
     const db = getDb();
     await db.transaction(async (tx) => {
       const updateData: Record<string, unknown> = {};
+      if (update.name !== undefined) updateData.name = update.name;
       if (update.description !== undefined) updateData.description = update.description;
       if (update.status !== undefined) updateData.status = update.status;
       if (update.sellPrice !== undefined) updateData.sellPrice = update.sellPrice.toFixed(2);
+  if (update.purchasePrice !== undefined) updateData.purchasePrice = update.purchasePrice.toFixed(2); // still maps to old column until migration
+      if (update.rentPrice !== undefined) updateData.rentPrice = update.rentPrice.toFixed(2);
       if (update.unique !== undefined) updateData.unique = update.unique;
       if (update.tagNames) {
         const distinct = Array.from(new Set(update.tagNames.map(n => n.trim()).filter(Boolean)));
@@ -120,9 +123,12 @@ class DrizzleItemRepository implements ItemRepository {
     }
     const mapped = baseRows.map(r => ({
       id: r.id as number,
+      name: (r as any).name || '',
       description: r.description ?? null,
       status: ((r as any).status || 'active') as ItemStatus,
       sellPrice: (r as any).sellPrice ? String((r as any).sellPrice) : '0',
+  purchasePrice: (r as any).purchasePrice ? String((r as any).purchasePrice) : '0',
+      rentPrice: (r as any).rentPrice ? String((r as any).rentPrice) : '0',
       unique: Boolean((r as any).unique),
       tags: ((r as any).tags || []).map((tid: number) => tagMapById.get(tid)).filter(Boolean),
       components: ((r as any).components || [])
@@ -143,9 +149,12 @@ class DrizzleItemRepository implements ItemRepository {
     }
     return {
       id: row.id as number,
+      name: row.name || '',
       description: row.description ?? null,
       status: (row.status || 'active') as ItemStatus,
       sellPrice: row.sellPrice ? String(row.sellPrice) : '0',
+  purchasePrice: row.purchasePrice ? String(row.purchasePrice) : '0',
+      rentPrice: row.rentPrice ? String(row.rentPrice) : '0',
       unique: Boolean(row.unique),
       tags: tagsResolved,
       components: Array.isArray(row.components) ? row.components : [],
@@ -154,7 +163,7 @@ class DrizzleItemRepository implements ItemRepository {
 }
 
 class SupabaseItemRepository implements ItemRepository {
-  async create(description: string, sellPrice: number, unique: boolean, tagNames: string[], componentIds: number[]) {
+  async create(name: string, description: string, sellPrice: number, purchasePrice: number, rentPrice: number, unique: boolean, tagNames: string[], componentIds: number[]) {
     const supabase = getSupabaseClient();
     // Ensure tags exist, get ids
     const distinct = Array.from(new Set(tagNames.map(n => n.trim()).filter(Boolean)));
@@ -182,16 +191,19 @@ class SupabaseItemRepository implements ItemRepository {
         finalComponents = (existingComps || []).map(r => (r as any).id);
       }
     }
-    const { error } = await supabase.from('items').insert({ description, sell_price: sellPrice, unique, tags: tagIds, components: finalComponents }).single();
+  const { error } = await supabase.from('items').insert({ name, description, sell_price: sellPrice, purchase_price: purchasePrice, rent_price: rentPrice, unique, tags: tagIds, components: finalComponents }).single();
     if (error) throw error;
   }
   async update(id: number, update: ItemUpdate) {
     if (!id || Number.isNaN(id)) throw new Error('Invalid item id');
     const supabase = getSupabaseClient();
     const updateData: Record<string, unknown> = {};
+    if (update.name !== undefined) updateData.name = update.name;
     if (update.description !== undefined) updateData.description = update.description;
     if (update.status !== undefined) updateData.status = update.status;
     if (update.sellPrice !== undefined) updateData.sell_price = update.sellPrice;
+  if (update.purchasePrice !== undefined) updateData.purchase_price = update.purchasePrice;
+    if (update.rentPrice !== undefined) updateData.rent_price = update.rentPrice;
     if (update.unique !== undefined) updateData.unique = update.unique;
   if (update.tagNames) {
       const distinct = Array.from(new Set(update.tagNames.map(n => n.trim()).filter(Boolean)));
@@ -247,7 +259,7 @@ class SupabaseItemRepository implements ItemRepository {
     const to = from + pageSize - 1;
     let query = supabase
       .from('items')
-      .select('id, description, status, sell_price, unique, tags', { count: 'exact' })
+  .select('id, name, description, status, sell_price, purchase_price, rent_price, unique, tags', { count: 'exact' })
       .order('id')
       .range(from, to);
     if (statusFilter !== 'all') query = query.eq('status', statusFilter);
@@ -263,9 +275,12 @@ class SupabaseItemRepository implements ItemRepository {
     }
     const mapped = itemsData.map(r => ({
       id: (r as any).id as number,
+      name: (r as any).name || '',
       description: (r as any).description ?? null,
       status: ((r as any).status || 'active') as ItemStatus,
       sellPrice: (r as any).sell_price != null ? String((r as any).sell_price) : '0',
+  purchasePrice: (r as any).purchase_price != null ? String((r as any).purchase_price) : '0',
+      rentPrice: (r as any).rent_price != null ? String((r as any).rent_price) : '0',
       unique: Boolean((r as any).unique),
       tags: ((r as any).tags || []).map((tid: number) => tagMapById.get(tid)).filter(Boolean),
       components: ((r as any).components || [])
@@ -277,7 +292,7 @@ class SupabaseItemRepository implements ItemRepository {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('items')
-      .select('id, description, status, sell_price, unique, tags, components')
+  .select('id, name, description, status, sell_price, purchase_price, rent_price, unique, tags, components')
       .eq('id', id)
       .maybeSingle();
     if (error) throw error;
@@ -291,9 +306,12 @@ class SupabaseItemRepository implements ItemRepository {
     }
     return {
       id: (data as any).id as number,
+      name: (data as any).name || '',
       description: (data as any).description ?? null,
       status: ((data as any).status || 'active') as ItemStatus,
       sellPrice: (data as any).sell_price != null ? String((data as any).sell_price) : '0',
+  purchasePrice: (data as any).purchase_price != null ? String((data as any).purchase_price) : '0',
+      rentPrice: (data as any).rent_price != null ? String((data as any).rent_price) : '0',
       unique: Boolean((data as any).unique),
       tags: tagsResolved,
       components: Array.isArray((data as any).components) ? (data as any).components : [],
@@ -304,24 +322,34 @@ class SupabaseItemRepository implements ItemRepository {
 export class ItemsService {
   constructor(private repo: ItemRepository) {}
   async createFromForm(formData: FormData) {
+    const name = String(formData.get('name') || '').trim() || 'Unnamed';
     const description = String(formData.get('description') || '').trim();
     const sellPriceRaw = String(formData.get('sellPrice') || '0').trim();
+  const purchasePriceRaw = String(formData.get('purchasePrice') || '0').trim();
+    const rentPriceRaw = String(formData.get('rentPrice') || '0').trim();
     const uniqueRaw = formData.get('unique');
     const sellPrice = Number(parseFloat(sellPriceRaw));
+  const purchasePrice = Number(parseFloat(purchasePriceRaw));
+    const rentPrice = Number(parseFloat(rentPriceRaw));
     const unique = uniqueRaw === 'on' || uniqueRaw === 'true' || uniqueRaw === '1';
     const tagNamesRaw = formData.getAll('tags').map(v => String(v)).filter(v => v.trim());
     const tagNames = Array.from(new Set(tagNamesRaw.map(v => v.trim())));
     const componentIdsRaw = formData.getAll('components').map(v => Number(v)).filter(v => Number.isInteger(v) && v > 0);
     const componentIds = Array.from(new Set(componentIdsRaw));
-    const finalDescription = description || 'Untitled item';
-    await this.repo.create(finalDescription, Number.isFinite(sellPrice) ? sellPrice : 0, unique, tagNames, componentIds);
+    const finalDescription = description || '';
+  await this.repo.create(name, finalDescription, Number.isFinite(sellPrice) ? sellPrice : 0, Number.isFinite(purchasePrice) ? purchasePrice : 0, Number.isFinite(rentPrice) ? rentPrice : 0, unique, tagNames, componentIds);
   }
   async updateFromForm(formData: FormData) {
     const id = this.extractId(formData);
+    const name = formData.get('name') != null ? String(formData.get('name') || '').trim() : undefined;
     const description = String(formData.get('description') || '').trim();
     const sellPriceRaw = String(formData.get('sellPrice') || '').trim();
+  const purchasePriceRaw = String(formData.get('purchasePrice') || '').trim();
+    const rentPriceRaw = String(formData.get('rentPrice') || '').trim();
     const uniqueRaw = formData.get('unique');
     const sellPrice = sellPriceRaw ? Number(parseFloat(sellPriceRaw)) : undefined;
+  const purchasePrice = purchasePriceRaw ? Number(parseFloat(purchasePriceRaw)) : undefined;
+    const rentPrice = rentPriceRaw ? Number(parseFloat(rentPriceRaw)) : undefined;
     const unique = uniqueRaw != null ? (uniqueRaw === 'on' || uniqueRaw === 'true' || uniqueRaw === '1') : undefined;
     const rawStatus = String(formData.get('status') || 'active').trim();
     const status: ItemStatus = (ITEM_STATUS_VALUES as readonly string[]).includes(rawStatus) ? (rawStatus as ItemStatus) : 'active';
@@ -335,8 +363,8 @@ export class ItemsService {
       const rawComp = formData.getAll('components').map(v => Number(v)).filter(v => Number.isInteger(v) && v > 0);
       componentIds = Array.from(new Set(rawComp));
     }
-    const finalDescription = description || 'Untitled item';
-    await this.repo.update(id, { description: finalDescription, status, sellPrice, unique, tagNames, componentIds });
+    const finalDescription = description || '';
+  await this.repo.update(id, { name, description: finalDescription, status, sellPrice, purchasePrice, rentPrice, unique, tagNames, componentIds });
   }
   async softDeleteFromForm(formData: FormData) {
     const id = this.extractId(formData);
