@@ -1,10 +1,11 @@
 "use client";
 import { Form } from "@/components/ui/form";
 import { PERSON_STATUS_VALUES, PERSON_TYPE_VALUES } from "@/app/persons/schema";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useTagOptions } from "@/lib/use-tag-options";
 import { DetailShell } from "@/components/detail-shell";
+import { useDetailSave } from "@/lib/use-detail-save";
 
 interface TagOption {
   name: string;
@@ -40,9 +41,7 @@ export default function PersonDetailClient({
     initialNames: initial.tagNames,
     fetchPath: "/api/persons/tags",
   });
-  const [isPending, startTransition] = useTransition();
-  const [savedAt, setSavedAt] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { runSave, isPending, savedAt, error } = useDetailSave();
 
   function handleSubmit(fd: FormData) {
     fd.append("id", String(initial.id));
@@ -50,15 +49,7 @@ export default function PersonDetailClient({
     fd.set("status", status);
     fd.set("type", type);
     fd.append("_tags_present", "1");
-    startTransition(async () => {
-      setError(null);
-      try {
-        await onSubmit(fd);
-        setSavedAt(Date.now());
-      } catch (e: any) {
-        setError(e.message || "Save failed");
-      }
-    });
+    runSave(() => onSubmit(fd));
   }
 
   // Tag loading handled by hook
@@ -75,11 +66,7 @@ export default function PersonDetailClient({
           ? () => {
               const fd = new FormData();
               fd.append("id", String(initial.id));
-              startTransition(async () => {
-                try {
-                  await onArchive(fd);
-                } catch {}
-              });
+              runSave(() => onArchive(fd), { recordTimestamp: false });
             }
           : undefined
       }

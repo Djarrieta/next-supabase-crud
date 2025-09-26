@@ -4,9 +4,10 @@ import { Form } from "@/components/ui/form";
 import { ITEM_STATUS_VALUES, type ItemStatus } from "@/lib/db/schema";
 import AsyncItemMultiSelect from "@/components/async-item-multiselect";
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useTagOptions } from "@/lib/use-tag-options";
 import { DetailShell } from "@/components/detail-shell";
+import { useDetailSave } from "@/lib/use-detail-save";
 
 export interface ItemDetailInitialValues {
   id: number;
@@ -63,9 +64,7 @@ export default function ItemDetailClient({
   const [components, setComponents] = useState<number[]>(
     initial.components.filter((c) => c !== initial.id)
   );
-  const [isPending, startTransition] = useTransition();
-  const [savedAt, setSavedAt] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { runSave, isPending, savedAt, error } = useDetailSave();
 
   function handleSubmit(fd: FormData) {
     fd.append("id", String(initial.id));
@@ -79,15 +78,7 @@ export default function ItemDetailClient({
     fd.append("_components_present", "1");
     // ensure existing components state serialized (hidden inputs already emitted by component component but keep for clarity)
     components.forEach((c) => fd.append("components", String(c)));
-    setError(null);
-    startTransition(async () => {
-      try {
-        await onSubmit(fd);
-        setSavedAt(Date.now());
-      } catch (e: any) {
-        setError(e.message || "Save failed");
-      }
-    });
+    runSave(() => onSubmit(fd));
   }
 
   // tagOptions loading handled by hook
@@ -104,13 +95,7 @@ export default function ItemDetailClient({
           ? () => {
               const fd = new FormData();
               fd.append("id", String(initial.id));
-              startTransition(async () => {
-                try {
-                  await onArchive(fd);
-                } catch (e) {
-                  /* no-op */
-                }
-              });
+              runSave(() => onArchive(fd), { recordTimestamp: false });
             }
           : undefined
       }
