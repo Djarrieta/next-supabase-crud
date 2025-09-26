@@ -29,7 +29,6 @@ async function ItemDetailContent({ id }: { id: number }) {
         components: (item as any).components || [],
       }}
       availableTags={[]}
-      availableComponents={[]}
       onSubmit={updateItem}
       onArchive={deleteItem}
     />

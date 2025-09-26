@@ -24,15 +24,10 @@ export interface ItemDetailInitialValues {
 interface TagOption {
   name: string;
 }
-interface ComponentOption {
-  id: number;
-  description: string | null;
-}
 
 interface Props {
   initial: ItemDetailInitialValues;
   availableTags: TagOption[];
-  availableComponents: ComponentOption[];
   onSubmit: (fd: FormData) => Promise<void>;
   onArchive?: (fd: FormData) => Promise<void>;
 }
@@ -44,7 +39,6 @@ const EDITABLE_STATUS_OPTIONS = ITEM_STATUS_VALUES.filter(
 export default function ItemDetailClient({
   initial,
   availableTags,
-  availableComponents,
   onSubmit,
   onArchive,
 }: Props) {
