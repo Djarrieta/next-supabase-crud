@@ -38,15 +38,37 @@ args:
 You are generating a new domain module for a Next.js + Drizzle + Supabase hybrid codebase.
 Follow these architectural rules strictly:
 
-ARCHITECTURE LAYERS
+ARCHITECTURE LAYERS (CURRENT CONVENTIONS)
 
 1. Domain Schema (Drizzle): app/<plural>/schema.ts
-2. Domain Service + Repository: app/<plural>/service.ts
-3. Server Actions (Next.js): app/<plural>/actions.ts
-4. UI (route page + dialogs/components): app/<plural>/page.tsx and app/<plural>/\*-dialog.tsx
-5. Central schema aggregator: lib/db/schema.ts (manual update step)
 
-NEVER import React/Next/UI inside schema or service modules (except allowed next/cache in actions).
+- Pure pg-core + sql helpers only. No React/Next imports.
+- Export: table, status enum (if any), status values constant, row & domain types.
+
+2. Domain Service + Repository: app/<plural>/service.ts
+
+- Two repository implementations (Drizzle & Supabase) auto-selected via env vars.
+- Service exposes createFromForm, updateFromForm, softDeleteFromForm (if soft-delete), list, get.
+
+3. Server Actions (Next.js): app/<plural>/actions.ts
+
+- Thin wrappers calling service methods + revalidatePath.
+- May include extra lightweight search helpers (see items/searchItemsForComponents pattern) when useful for selectors.
+
+4. UI (list page + add dialog + detail page client):
+
+- List route: app/<plural>/page.tsx (renders TableTemplate + Add dialog + filter input).
+- Detail route: app/<plural>/[<singularId>]/page.tsx with a `<Singular>DetailClient` component in same folder for editing / archiving.
+- Add dialog: app/<plural>/add-<module_name>-dialog.tsx (client component, uses shared Form primitives).
+- Optional: filter utilities files (filter-utils.ts, use-<plural>-filters.ts) when the domain supports query filters.
+
+5. Optional Tag Submodule (when with_tags = yes): app/<plural>/tags/
+
+- schema.ts, service.ts, actions.ts, page.tsx, add-<singular>-tag-dialog.tsx (see items/tags example).
+
+6. Central schema aggregator: lib/db/schema.ts (manual update – export new table, enums, and types).
+
+RULE: NEVER import React/Next/UI inside schema or service modules (except next/cache in actions).
 
 INPUT VARIABLES
 
@@ -71,20 +93,34 @@ STEPS (produce as checklist markdown):
 
 1. Create folder app/<plural_lower>/
 2. Add schema.ts with pgTable definition including:
-   - id bigint identity primary key
-   - status enum (generate new enum; enum name pattern: <module_name>\_status)
-   - timestamps (optional? only if asked — default omit unless user includes created_at / updated_at fields)
-   - requested fields parsed from fields input
-   - optional arrays: tags (bigint[]) and components (bigint[]) based on flags
-3. Add service.ts implementing repository (Drizzle + Supabase versions) with CRUD (create, update, list, soft delete via status = archived if archived is in statuses; else hard delete)
-4. Add actions.ts exposing create / update / delete / list server actions + revalidatePath("/<plural_lower>")
-5. Add page.tsx rendering TableTemplate consistent with Items example (copy and adapt columns)
-6. Add add-<module_name>-dialog.tsx and edit-<module_name>-dialog.tsx (adapt from items dialogs; minimal fields form). Include hidden markers \_tags_present / \_components_present if those arrays included.
-7. Update dashboard (app/page.tsx) by appending a new card object linking to "/<plural_lower>" (see DASHBOARD UPDATE RULES below).
-8. Update lib/db/schema.ts to export the new table + related types.
-9. (Optional) If tags included and you want a dedicated tag catalog, instruct follow-up similar to itemTags module.
-10. Run migration commands: bun drizzle:generate && bun drizzle:push
-11. Add seed support: create a new file scripts/seed/<plural_lower>.ts exporting seed<PascalPlural>() and import + invoke it from scripts/seed/index.ts (entrypoint). Then run: bun drizzle:seed
+
+- id bigint identity primary key
+- status enum (if statuses supplied) – enum name pattern: <module_name>\_status; constant: <MODULE_UPPER>\_STATUS_VALUES; exported pgEnum variable: <module_name>StatusEnum or <module_name>StatusEnum (follow items pattern: itemStatusEnum & ITEM_STATUS_VALUES)
+- requested fields parsed from fields input (nullable by default unless type rule sets notNull)
+- optional arrays (when flags enabled):
+  - tags: bigint[] (NOT NULL default empty) – identical default: sql`'{}'::bigint[]`
+  - components: bigint[] (self-referencing) – same default
+- Avoid timestamps unless explicitly requested in fields list.
+
+3. (If with_tags = yes) Create subfolder app/<plural_lower>/tags with schema.ts, service.ts, actions.ts, page.tsx, add-<module_name>-tag-dialog.tsx mirroring items/tags pattern (id + name, idempotent create, listAll).
+4. Add service.ts implementing repositories:
+
+- Drizzle + Supabase versions auto-selected via env var presence (DATABASE_URL or DRIZZLE_DATABASE_URL).
+- Methods: create(name,...), update(id,...), list(filters,page,pageSize), get(id).
+- Service wrapper exposing createFromForm, updateFromForm, softDeleteFromForm (sets status='archived' if status enum includes it, otherwise hard delete), list, get.
+- Tag resolution + creation (if tags enabled) identical to items service (distinct names, create missing, store bigint[] ids).
+- Component validation (if components enabled): remove duplicates & self, ensure existence, prevent cycles by walking ancestor graph (see items service BFS approach).
+
+5. Add actions.ts exposing server actions: create<PascalSingular>, update<PascalSingular>, delete<PascalSingular> (soft), list<PascalPlural>, get<PascalSingular>. Revalidate list path and detail path (/<plural_lower> and /<plural_lower>/{id}). Include optional search helper if components enabled (pattern: search<PascalPlural>ForComponents(query, excludeIds, limit)).
+6. Add page.tsx rendering TableTemplate (reference items/page.tsx) with columns: id, primary name/label field (show Badges-like summary if status/unique/tags/components exist), actions column linking to detail page.
+7. Add add-<module_name>-dialog.tsx (client). No edit dialog: editing occurs on detail route.
+8. Add detail route folder app/<plural_lower>/[<module_name>Id]/ containing page.tsx and <module_name>-detail-client.tsx. Client includes form for editing all fields + status selector + tags/components inputs (hidden markers `_tags_present` / `_components_present` when those arrays exist for selective update logic).
+9. Add optional filter-utils.ts and use-<plural>-filters.ts if any list filters (status, ids, q/nameQuery, tagIds, unique, etc.) are relevant. Follow pattern from items module for parsing searchParams -> ItemsListFilters.
+10. Update dashboard (app/page.tsx) by appending card linking to "/<plural_lower>" (see DASHBOARD UPDATE RULES below).
+11. Update lib/db/schema.ts to export the new table, enum(s), constants, and types.
+12. Run migration commands: bun drizzle:generate && bun drizzle:push
+13. Add seed support: create scripts/seed/<plural_lower>.ts exporting seed<PascalPlural>(), import & invoke inside scripts/seed/index.ts. Then run: bun drizzle:seed
+14. (If with_tags = yes) Document how to navigate to /<plural_lower>/tags for tag management (similar to /items/tags).
 
 PARSING FIELDS
 For each field spec name:type[:options]
@@ -115,14 +151,16 @@ Same pattern as app/items/actions.ts; keep try/catch + revalidatePath.
 
 PAGE RULES
 
-- Use TableTemplate
-- Provide description summarizing domain: "<Plural UI Label> management. Auto‑generated skeleton. Adjust columns, dialogs, and domain rules as needed."
-- Columns: id + first textual field(s) + status tag + counts (tags/components) if present + actions column with edit dialog
+- Use TableTemplate.
+- Provide description summarizing domain: "<Plural UI Label> management. Auto‑generated skeleton. Adjust columns, dialogs, filters, and domain rules as needed."
+- Columns minimal default: id | primary text field (with badges summarizing status, uniqueness, counts) | actions (link to detail page). Expand as needed.
+- Export `revalidate = 0` for always fresh data (matching current items module behavior) unless caching strategy differs.
 
-DIALOGS
+DIALOG / DETAIL EDITING
 
-- Add form fields for each custom field (excluding id, status auto default on create) + tags/components selectors if included
-- Edit dialog includes status selector (enum values) + optional toggles
+- Add dialog handles create only.
+- Detail page client component handles editing (status changes, tags/components, etc.) and archive (soft delete) action.
+- Hidden markers `_tags_present` & `_components_present` are included in the edit form when those arrays exist so the service can detect intent to update them (mirrors items implementation).
 
 DASHBOARD UPDATE RULES (app/page.tsx)
 

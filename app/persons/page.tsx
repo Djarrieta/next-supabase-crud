@@ -1,0 +1,56 @@
+import { MAX_PAGE_SIZE } from '@/app/constants';
+import Breadcrumb from '@/components/breadcrumb';
+import { ViewIcon } from '@/components/icons';
+import TableTemplate, { TableTemplateColumn } from '@/components/table-template';
+import Link from 'next/link';
+import { createPerson, listPersons } from './actions';
+import AddPersonDialog from './add-person-dialog';
+import { parseSearchParamsToFilters } from './filter-utils';
+import { PersonsListFilters } from './service';
+import { getAllPersonTags } from './tags/actions';
+import Badges from '@/components/badges';
+import PersonsFilterInput from '@/components/persons-filter-input';
+import { createPageHrefBuilder, parsePagination } from '@/components/pagination-server';
+
+export const revalidate = 0;
+
+interface PersonRow { id: number; name: string; type: string; status: string; tags?: { id: number; name: string }[] }
+
+export default async function PersonsPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined>; }) {
+  let personsData: PersonRow[] = []; let total = 0; let page = 1; let pageSize = MAX_PAGE_SIZE; let allTags: { name: string }[] = [];
+  const filters: PersonsListFilters = parseSearchParamsToFilters(new URLSearchParams(Object.entries(searchParams || {}).flatMap(([k,v]) => Array.isArray(v) ? v.map(iv => [k, iv]) : [[k,v]]) as any));
+  ({ page, pageSize } = parsePagination({
+    searchParams,
+    defaultPageSize: MAX_PAGE_SIZE,
+    maxPageSize: MAX_PAGE_SIZE,
+  }));
+  try {
+    const [personsResult, tagCatalog] = await Promise.all([
+      listPersons(filters, page, pageSize),
+      getAllPersonTags(),
+    ]);
+    personsData = personsResult.rows as any; total = personsResult.total; page = personsResult.page; pageSize = personsResult.pageSize;
+    allTags = (tagCatalog || []).map((t: any) => ({ name: t.name })).sort((a,b)=>a.name.localeCompare(b.name));
+  } catch (e: any) {
+    return <p className="text-sm text-red-600">Failed to load persons: {e.message}</p>;
+  }
+  const columns: TableTemplateColumn<PersonRow>[] = [
+    { id: 'id', header: <span className="w-24 inline-block">ID</span>, widthClass: 'w-24', cell: r => <span className="font-mono text-xs">{r.id}</span> },
+    { id: 'name', header: 'Name', cell: r => <div className="flex flex-col"><span>{r.name}</span><Badges status={r.status} tags={(r.tags||[])} className="pt-1" /></div> },
+    { id: 'type', header: 'Type', cell: r => <span className="text-xs uppercase">{r.type}</span> },
+    { id: 'actions', header: <></>, alignRight: true, widthClass: 'w-28', cell: r => <Link href={`/persons/${r.id}`} className="inline-flex items-center justify-center rounded border px-2 py-1 text-xs hover:bg-accent" aria-label={`View person ${r.id}`} title="View details"><ViewIcon className="w-4 h-4" /></Link> },
+  ];
+  const extraParams: Record<string, any> = {};
+  if (filters.status) extraParams.status = filters.status;
+  if (filters.ids && filters.ids.length) extraParams.ids = filters.ids.join(',');
+  if (filters.nameQuery) extraParams.q = filters.nameQuery;
+  if (filters.tagIds && filters.tagIds.length) extraParams.tags = filters.tagIds.join(',');
+  if (filters.type) extraParams.type = filters.type;
+  const makePageHref = createPageHrefBuilder('/persons', {
+    pageSize,
+    defaultPageSize: MAX_PAGE_SIZE,
+    extraParams: Object.keys(extraParams).length ? extraParams : undefined,
+  });
+
+  return <TableTemplate title="Persons" description="Persons management. Auto‑generated skeleton. Adjust columns, dialogs, filters, and domain rules as needed." breadcrumb={<Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Persons' }]} />} rows={personsData} totalRows={total} page={page} pageSize={pageSize} makePageHref={makePageHref} columns={columns} emptyMessage="No persons found" controlsStart={<AddPersonDialog action={createPerson} availableTags={allTags} />} controlsEnd={<PersonsFilterInput />} />;
+}
