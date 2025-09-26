@@ -1,9 +1,9 @@
-import { notFound } from "next/navigation";
+import { deletePerson, getPerson, updatePerson } from "@/app/persons/actions";
 import Breadcrumb from "@/components/breadcrumb";
-import { getPerson, updatePerson, deletePerson } from "@/app/persons/actions";
-import PersonDetailClient from "./person-detail-client";
-import { Suspense } from "react";
 import DetailSkeleton from "@/components/detail-skeleton";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import PersonDetailClient from "./person-detail-client";
 
 export const revalidate = 5;
 

@@ -1,9 +1,9 @@
 import { deleteItem, getItem, updateItem } from "@/app/items/actions";
 import Breadcrumb from "@/components/breadcrumb";
-import ItemDetailClient from "./item-detail-client";
+import DetailSkeleton from "@/components/detail-skeleton";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import DetailSkeleton from "@/components/detail-skeleton";
+import ItemDetailClient from "./item-detail-client";
 
 export const revalidate = 5; // small cache window
 

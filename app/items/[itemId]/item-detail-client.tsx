@@ -48,7 +48,7 @@ export default function ItemDetailClient({
   onSubmit,
   onArchive,
 }: Props) {
-  const [editMode, setEditMode] = useState(true);
+  const [editMode, setEditMode] = useState(false);
 
   // local form state (from former InlineItemForm)
   const [description, setDescription] = useState(initial.description);
