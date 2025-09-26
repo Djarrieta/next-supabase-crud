@@ -1,59 +1,44 @@
-import {
-  deleteItem,
-  getItem,
-  listItems as listItemsAction,
-  updateItem,
-} from "@/app/items/actions";
-import { listAllItemTags } from "@/app/items/tags/actions";
+import { deleteItem, getItem, updateItem } from "@/app/items/actions";
 import Breadcrumb from "@/components/breadcrumb";
-import { Item } from "@/lib/db/schema";
-import { notFound } from "next/navigation";
 import ItemDetailClient from "./item-detail-client";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import DetailSkeleton from "@/components/detail-skeleton";
 
-export const revalidate = 0; // always fresh
+export const revalidate = 5; // small cache window
 
 interface Props {
   params: { itemId: string };
 }
 
-async function fetchData(id: number) {
-  const [item, tagCatalog, listForComponents] = await Promise.all([
-    getItem(id),
-    listAllItemTags(),
-    // we only need a lightweight list of items to populate component selector; reuse listItems first page
-    listItemsAction("all" as any, 1, 200).catch(() => ({
-      rows: [],
-      total: 0,
-      page: 1,
-      pageSize: 0,
-    })),
-  ]);
-  return { item, tagCatalog, listForComponents };
+async function ItemDetailContent({ id }: { id: number }) {
+  const item = await getItem(id);
+  if (!item) return notFound();
+  return (
+    <ItemDetailClient
+      initial={{
+        id,
+        name: (item as any).name || `Item ${id}`,
+        description: (item as any).description || "",
+        status: (item as any).status,
+        sellPrice: Number((item as any).sellPrice || 0),
+        purchasePrice: Number((item as any).purchasePrice || 0),
+        rentPrice: Number((item as any).rentPrice || 0),
+        unique: Boolean((item as any).unique),
+        tagNames: ((item as any).tags || []).map((t: any) => t.name),
+        components: (item as any).components || [],
+      }}
+      availableTags={[]}
+      availableComponents={[]}
+      onSubmit={updateItem}
+      onArchive={deleteItem}
+    />
+  );
 }
 
-export default async function ItemDetailPage({ params }: Props) {
+export default function ItemDetailPage({ params }: Props) {
   const id = Number(params.itemId);
   if (!id || Number.isNaN(id)) return notFound();
-  let itemData: Item | null = null;
-  let allTags: { name: string }[] = [];
-  let componentCandidates: { id: number; description: string | null }[] = [];
-  try {
-    const { item, tagCatalog, listForComponents } = await fetchData(id);
-    if (!item) return notFound();
-    itemData = item as Item;
-    allTags = (tagCatalog || [])
-      .map((t: any) => ({ name: t.name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-    componentCandidates = (listForComponents.rows || []).map((r: any) => ({
-      id: r.id,
-      description: r.description,
-    }));
-  } catch (e: any) {
-    return (
-      <p className="text-sm text-red-600">Failed to load item: {e.message}</p>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <Breadcrumb
@@ -63,24 +48,9 @@ export default async function ItemDetailPage({ params }: Props) {
           { label: `Item ${id}` },
         ]}
       />
-      <ItemDetailClient
-        initial={{
-          id,
-          name: (itemData as any).name || `Item ${id}`,
-          description: itemData?.description || "",
-          status: (itemData as any).status,
-          sellPrice: Number(itemData?.sellPrice || 0),
-          purchasePrice: Number((itemData as any).purchasePrice || 0),
-          rentPrice: Number((itemData as any).rentPrice || 0),
-          unique: Boolean(itemData?.unique),
-          tagNames: ((itemData as any).tags || []).map((t: any) => t.name),
-          components: (itemData as any).components || [],
-        }}
-        availableTags={allTags}
-        availableComponents={componentCandidates}
-        onSubmit={updateItem}
-        onArchive={deleteItem}
-      />
+      <Suspense fallback={<DetailSkeleton />}>
+        <ItemDetailContent id={id} />
+      </Suspense>
     </div>
   );
 }

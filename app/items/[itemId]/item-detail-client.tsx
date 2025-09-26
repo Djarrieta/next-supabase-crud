@@ -6,7 +6,7 @@ import { Form } from "@/components/ui/form";
 import { ITEM_STATUS_VALUES, type ItemStatus } from "@/lib/db/schema";
 import AsyncItemMultiSelect from "@/components/async-item-multiselect";
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 
 export interface ItemDetailInitialValues {
   id: number;
@@ -61,6 +61,11 @@ export default function ItemDetailClient({
   const [rentPrice, setRentPrice] = useState<number>(initial.rentPrice);
   const [unique, setUnique] = useState<boolean>(initial.unique);
   const [tagNames, setTagNames] = useState<string[]>(initial.tagNames);
+  const [tagOptions, setTagOptions] = useState<TagOption[]>(
+    availableTags.length
+      ? availableTags
+      : Array.from(new Set(initial.tagNames)).map((n) => ({ name: n }))
+  );
   const [components, setComponents] = useState<number[]>(
     initial.components.filter((c) => c !== initial.id)
   );
@@ -90,6 +95,19 @@ export default function ItemDetailClient({
       }
     });
   }
+
+  useEffect(() => {
+    if (tagOptions.length === 0) {
+      fetch("/api/items/tags")
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((data: { name: string }[]) =>
+          setTagOptions((prev) =>
+            prev.length ? prev : data.map((t) => ({ name: t.name }))
+          )
+        )
+        .catch(() => {});
+    }
+  }, [tagOptions.length]);
 
   return (
     <div className="relative">
@@ -207,7 +225,7 @@ export default function ItemDetailClient({
                 <div className="space-y-2">
                   <Form.Tags
                     name="tags"
-                    options={availableTags.map((t) => ({
+                    options={tagOptions.map((t) => ({
                       value: t.name,
                       label: t.name,
                     }))}

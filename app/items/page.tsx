@@ -1,8 +1,13 @@
-import { MAX_PAGE_SIZE } from "@/app/constants";
-import Badges from "@/components/badges";
+import { Suspense } from "react";
 import Breadcrumb from "@/components/breadcrumb";
-import { ViewIcon } from "@/components/icons";
+import TableSkeleton from "@/components/table-skeleton";
+import AddItemDialog from "./add-item-dialog";
 import ItemsFilterInput from "@/components/items-filter-input";
+import { createItem, listItems } from "./actions";
+import { MAX_PAGE_SIZE } from "@/app/constants";
+import { parseSearchParamsToFilters } from "./filter-utils";
+import { ItemsListFilters } from "./service";
+import { Item } from "./schema";
 import {
   createPageHrefBuilder,
   parsePagination,
@@ -10,27 +15,37 @@ import {
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
+import Badges from "@/components/badges";
 import Link from "next/link";
-import { createItem, listItems } from "./actions";
-import AddItemDialog from "./add-item-dialog";
-import { parseSearchParamsToFilters } from "./filter-utils";
-import { Item } from "./schema";
-import { ItemsListFilters } from "./service";
-import { listAllItemTags } from "./tags/actions";
+import { ViewIcon } from "@/components/icons";
 
-export const revalidate = 0; // always fresh
+// Allow a small cache window to avoid full fresh render every navigation
+export const revalidate = 5;
 
-export default async function ItemsPage({
+export default function ItemsPage({
   searchParams,
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  let itemsData: Item[] = [];
-  // Full catalog of tags for dialogs (Add/Edit)
-  let allTags: { name: string }[] = [];
-  let total = 0;
+  return (
+    <div className="space-y-6">
+      <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Items" }]} />
+      <Suspense fallback={<TableSkeleton rows={6} cols={3} />}>
+        <ItemsTable searchParams={searchParams} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function ItemsTable({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   let page = 1;
   let pageSize = MAX_PAGE_SIZE;
+  let total = 0;
+  let itemsData: Item[] = [];
   const filters: ItemsListFilters = parseSearchParamsToFilters(
     new URLSearchParams(
       Object.entries(searchParams || {}).flatMap(([k, v]) =>
@@ -38,25 +53,17 @@ export default async function ItemsPage({
       ) as any
     )
   );
-  // pagination params
   ({ page, pageSize } = parsePagination({
     searchParams,
     defaultPageSize: MAX_PAGE_SIZE,
     maxPageSize: MAX_PAGE_SIZE,
   }));
   try {
-    const [itemsResult, tagCatalog] = await Promise.all([
-      listItems(filters, page, pageSize),
-      // fetch entire tag catalog (no pagination)
-      listAllItemTags(),
-    ]);
-    itemsData = itemsResult.rows as Item[];
-    total = itemsResult.total;
-    page = itemsResult.page;
-    pageSize = itemsResult.pageSize;
-    allTags = tagCatalog
-      .map((t: any) => ({ name: t.name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const listRes = await listItems(filters, page, pageSize);
+    itemsData = listRes.rows as Item[];
+    total = listRes.total;
+    page = listRes.page;
+    pageSize = listRes.pageSize;
   } catch (e: any) {
     return (
       <p className="text-sm text-red-600">Failed to load items: {e.message}</p>
@@ -66,7 +73,6 @@ export default async function ItemsPage({
     id: i.id,
     description: i.description,
   }));
-  // Columns definition using generic table component
   const columns: TableTemplateColumn<Item>[] = [
     {
       id: "id",
@@ -111,8 +117,6 @@ export default async function ItemsPage({
       ),
     },
   ];
-
-  // Build base extra params preserving filters (omit defaults / empty)
   const extraParams: Record<string, any> = {};
   if (filters.status) extraParams.status = filters.status;
   if (filters.ids && filters.ids.length)
@@ -127,31 +131,25 @@ export default async function ItemsPage({
     defaultPageSize: MAX_PAGE_SIZE,
     extraParams: Object.keys(extraParams).length ? extraParams : undefined,
   });
-
   return (
     <TableTemplate
       title="Items"
-      description="Catalog of sellable or reference entities. Each item has: optional description, lifecycle status (active = available, inactive = temporarily hidden, archived = soft‑deleted), monetary sell price, uniqueness flag, and zero or more tags for fast grouping/filtering. Use the Add / Edit dialogs to manage details, change status, adjust price, toggle uniqueness, and attach or create tags."
-      breadcrumb={
-        <Breadcrumb
-          items={[{ label: "Home", href: "/" }, { label: "Items" }]}
-        />
-      }
+      description="Catalog of sellable or reference entities. Use dialogs to manage status, pricing, uniqueness and tags."
       rows={itemsData}
       totalRows={total}
       page={page}
       pageSize={pageSize}
       makePageHref={makePageHref}
       columns={columns}
-      emptyMessage="No items found"
       controlsStart={
         <AddItemDialog
           action={createItem}
-          availableTags={allTags}
+          availableTags={[]}
           availableComponents={availableComponents}
         />
       }
       controlsEnd={<ItemsFilterInput />}
+      emptyMessage="No items found"
     />
   );
 }

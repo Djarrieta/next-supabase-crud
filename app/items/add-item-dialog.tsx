@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import AddEntityDialog from "@/components/add-entity-dialog";
+import { useEffect, useState } from "react";
 import { Form } from "@/components/ui/form";
 // Tag names selected are resolved to tag ids (catalog) server-side.
 type TagOption = { name: string };
@@ -16,6 +17,20 @@ export default function AddItemDialog({
   availableTags,
   availableComponents,
 }: Props) {
+  const [tags, setTags] = useState<TagOption[]>(availableTags);
+  useEffect(() => {
+    if (tags.length === 0) {
+      // Fetch lazily when dialog first mounts
+      fetch("/api/items/tags")
+        .then((r) =>
+          r.ok ? r.json() : Promise.reject(new Error("Failed to load tags"))
+        )
+        .then((data: { name: string }[]) =>
+          setTags(data.map((t) => ({ name: t.name })))
+        )
+        .catch(() => {});
+    }
+  }, [tags.length]);
   return (
     <AddEntityDialog
       triggerLabel="New Item"
@@ -63,7 +78,7 @@ export default function AddItemDialog({
       <Form.CheckboxInput name="unique" label="Unique" />
       <Form.Tags
         name="tags"
-        options={availableTags.map((t) => ({ value: t.name, label: t.name }))}
+        options={tags.map((t) => ({ value: t.name, label: t.name }))}
       />
       <div className="-mt-2 mb-2 text-xs text-muted-foreground">
         Need to add or edit tags? {""}

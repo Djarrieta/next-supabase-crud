@@ -2,6 +2,7 @@
 import { Form } from "@/components/ui/form";
 import Link from "next/link";
 import AddEntityDialog from "@/components/add-entity-dialog";
+import { useEffect, useState } from "react";
 
 interface TagOption {
   name: string;
@@ -12,6 +13,19 @@ interface Props {
 }
 
 export default function AddPersonDialog({ action, availableTags }: Props) {
+  const [tags, setTags] = useState<TagOption[]>(availableTags);
+  useEffect(() => {
+    if (tags.length === 0) {
+      fetch("/api/persons/tags")
+        .then((r) =>
+          r.ok ? r.json() : Promise.reject(new Error("Failed to load tags"))
+        )
+        .then((data: { name: string }[]) =>
+          setTags(data.map((t) => ({ name: t.name })))
+        )
+        .catch(() => {});
+    }
+  }, [tags.length]);
   return (
     <AddEntityDialog
       triggerLabel="New Person"
@@ -38,7 +52,7 @@ export default function AddPersonDialog({ action, availableTags }: Props) {
       />
       <Form.Tags
         name="tags"
-        options={availableTags.map((t) => ({ value: t.name, label: t.name }))}
+        options={tags.map((t) => ({ value: t.name, label: t.name }))}
       />
       <div className="-mt-2 mb-2 text-xs text-muted-foreground">
         Need to add or edit tags?{" "}
