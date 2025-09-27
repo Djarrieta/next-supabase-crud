@@ -78,6 +78,7 @@ app/<plural>/[<singularId>]/<singular>-detail-client.tsx
 app/<plural>/add-<singular>-dialog.tsx
 app/<plural>/filter-utils.ts
 app/<plural>/use-<plural>-filters.ts
+app/api/<plural>/route.ts (lightweight list endpoint for selectors/search)
 scripts/seed/<plural>.ts
 (if hasTags) app/<plural>/tags/schema.ts
 (if hasTags) app/<plural>/tags/service.ts
@@ -153,6 +154,30 @@ import { getDb, <singular>Tags } from '@/lib/db/client';
 export async function GET(){ const db=getDb(); const rows=await db.select().from(<singular>Tags).orderBy(<singular>Tags.name); return NextResponse.json(rows.map(r=>({ id:r.id, name:r.name }))); }
 ```
 
+### Base Collection API Route (always)
+
+Purpose: small JSON list for client-side selectors/autocomplete (avoid over-fetching full pages). Supports optional substring query and limit.
+
+```ts
+// app/api/<plural>/route.ts
+import { NextResponse } from 'next/server';
+import { get<CapitalizedPlural>Service } from '@/app/<plural>/service';
+export const revalidate = 60; // cache 1m (adjust as needed)
+export async function GET(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const q = url.searchParams.get('q')?.trim() || '';
+    const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit')||'25',10)||25,1),100);
+    const svc = get<CapitalizedPlural>Service();
+    // Use list with status 'active' default unless module lacks status then omit
+    const res = await svc.list({ nameQuery: q || undefined, status: 'active' } as any, 1, limit);
+    return NextResponse.json(res.rows.map(r => ({ id: (r as any).id, name: (r as any).name })));
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Failed to load <plural>' }, { status: 500 });
+  }
+}
+```
+
 ### Completion Checklist
 
 [] Exported schema/enums in lib/db/schema.ts
@@ -164,6 +189,7 @@ export async function GET(){ const db=getDb(); const rows=await db.select().from
 [] Filters util + hook
 [] Tag sub-module (if tags)
 [] Tags API route (if tags)
+[] Base collection API route (always)
 [] Seed script + index registration
 [] README update (optional)
 
@@ -199,4 +225,4 @@ Return final answer as:
 
 1. Summary table (path -> purpose)
 2. File contents (plain)
-3. Manual steps (aggregator export, migration)
+3. Run in the terminal bun db:update

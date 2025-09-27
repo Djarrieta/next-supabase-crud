@@ -11,7 +11,7 @@ import { listPersons, createPerson } from "./actions";
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
-import PersonsFilterInput from "@/components/persons-filter-input";
+import PersonsFilterInput from "./persons-filter-input";
 import AddPersonDialog from "./add-person-dialog";
 import Link from "next/link";
 import { ViewIcon } from "@/components/icons";

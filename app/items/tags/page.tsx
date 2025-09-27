@@ -8,7 +8,7 @@ import {
   deleteItemTag,
   createItemTag,
 } from "./actions";
-import EditItemTagDialog from "@/components/edit-item-tag-dialog";
+import EditItemTagDialog from "./edit-item-tag-dialog";
 import AddItemTagDialog from "./add-item-tag-dialog";
 
 import {
