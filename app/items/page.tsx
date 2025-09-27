@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Breadcrumb from "@/components/breadcrumb";
 import TableSkeleton from "@/components/table-skeleton";
 import AddItemDialog from "./add-item-dialog";
-import ItemsFilterInput from "@/components/items-filter-input";
+import ItemsFilterInput from "@/app/items/items-filter-input";
 import { createItem, listItems } from "./actions";
 import { MAX_PAGE_SIZE } from "@/app/constants";
 import { parseSearchParamsToFilters } from "./filter-utils";

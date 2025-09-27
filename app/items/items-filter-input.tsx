@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { useRef, useState, useEffect } from "react";
-import { useItemsFilters } from "../app/items/use-items-filters";
+import { useItemsFilters } from "./use-items-filters";
 import { CloseIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 

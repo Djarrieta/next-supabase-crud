@@ -13,7 +13,7 @@ import {
 import TableTemplate, {
   TableTemplateColumn,
 } from "@/components/table-template";
-import ProjectsFilterInput from "@/components/projects-filter-input";
+import ProjectsFilterInput from "@/app/projects/projects-filter-input";
 import Link from "next/link";
 import { ViewIcon } from "@/components/icons";
 
