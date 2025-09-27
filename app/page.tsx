@@ -21,6 +21,12 @@ export default function HomePage() {
       description: "Manage people with tags and component links.",
       icon: <PersonsIcon className="w-6 h-6" />,
     },
+    {
+      href: "/projects",
+      label: "Projects",
+      description: "Projects referencing persons (simple FK).",
+      icon: <ItemsIcon className="w-6 h-6" />,
+    },
   ];
   return (
     <div className="space-y-8">

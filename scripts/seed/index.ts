@@ -1,5 +1,6 @@
 import { seedItemTags, seedItems } from "./items";
 import { seedPersonTags, seedPersons } from "./persons";
+import { seedProjects } from './projects';
 
 async function main() {
   // Seeds itemTags and items
@@ -8,6 +9,9 @@ async function main() {
   // New module seeds: persons
   const seededPersonTags = await seedPersonTags(5);
   await seedPersons(seededPersonTags, 50);
+
+  // Projects (depends on persons existing)
+  await seedProjects(40);
 
 
   console.log("Seed complete.");

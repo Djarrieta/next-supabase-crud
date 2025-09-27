@@ -17,4 +17,9 @@ export type { Person, NewPerson, PersonStatus } from '@/app/persons/schema';
 export { personTags } from '@/app/persons/tags/schema';
 export type { PersonTagRow, NewPersonTagRow } from '@/app/persons/tags/schema';
 
+// projects feature
+export { projects, projectStatusEnum, PROJECT_STATUS_VALUES } from '@/app/projects/schema';
+export type { Project, NewProject, ProjectStatus } from '@/app/projects/schema';
+
+
 

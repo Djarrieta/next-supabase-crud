@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -9,9 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import type { ItemTagRow } from "@/app/items/tags/schema";
 
 type Props = {
   id: number;
